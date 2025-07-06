@@ -11,9 +11,15 @@
   },
   "dependencies": {
     "@clerk/clerk-react": "^5.32.4",
+    "@headlessui/react": "^2.2.4",
+    "@heroicons/react": "^2.2.0",
+    "@reduxjs/toolkit": "^2.8.2",
     "@tailwindcss/vite": "^4.1.11",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-hook-form": "^7.60.0",
+    "react-redux": "^9.2.0",
+    "react-router-dom": "^7.6.3",
     "tailwindcss": "^4.1.11"
   },
   "devDependencies": {
@@ -21,10 +27,12 @@
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.5.2",
+    "daisyui": "^5.0.43",
     "eslint": "^9.29.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.2.0",
+    "prettier": "^3.6.2",
     "vite": "^7.0.0"
   }
 }
