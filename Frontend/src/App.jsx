@@ -4,6 +4,7 @@ import {
   SignedOut,
   SignInButton,
   UserButton,
+  useAuth
 } from "@clerk/clerk-react";
 import { useUser } from "@clerk/clerk-react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router";
@@ -12,7 +13,25 @@ import About from "./components/About";
 
 export default function App() {
   const user = useUser();
-  console.log(user);
+  //console.log(user);
+
+const { getToken } = useAuth()
+
+async function callProtectedRoute() {
+    const token = await getToken()
+    const response = await fetch('http://localhost:8000/protected', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+    const data = await response.json()
+    console.log(data);
+    
+    // handle data here
+  }
+  callProtectedRoute();
+
+
 
   return (
     // <header>
