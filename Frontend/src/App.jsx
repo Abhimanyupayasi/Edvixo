@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   SignedIn,
   SignedOut,
@@ -10,45 +10,50 @@ import { useUser } from "@clerk/clerk-react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router";
 import Home from "./components/Home";
 import About from "./components/About";
+import isProtected from "./clerk/ClerkRole";
+import useUserInfo from "./clerk/ClerkRole";
+import SuperAdmin from "./layouts/SuperAdmin";
+import Dashboard from "./components/Dashboard";
+import CreatePlanForm from "./super-admin/CreatePlan";
+import PlansExplorer from "./components/pricing/ViewPricing";
+import ViewPlanByID from "./components/pricing/ViewPlanByID";
+
 
 export default function App() {
-  const user = useUser();
-  //console.log(user);
+    const { isLoaded, userId } = useAuth();
 
-const { getToken } = useAuth()
-
-async function callProtectedRoute() {
-    const token = await getToken()
-    const response = await fetch('http://localhost:8000/protected', {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-    const data = await response.json()
+  const fetchData = async () => {
+    const response = await fetch('http://localhost:8000/admin', {
+      credentials: 'include' // Required for cookies
+    });
+    const data = await response.json();
     console.log(data);
-    
-    // handle data here
-  }
-  callProtectedRoute();
+  };
 
+  useEffect(() => {
+    if (userId) fetchData();
+  }, [userId]);
 
+  const user = useUser();
+  console.log(user);
 
+  
+  
   return (
-    // <header>
-    //   <SignedOut>
-    //     <SignInButton className="text-2xl border-[1px] px-2 p-5 py-1 cursor-pointer" />
-    //   </SignedOut>
-    //   <SignedIn>
-    //     <UserButton />
-    //   </SignedIn>
-    // </header>
+    
     <>
-      <Router>
+      
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
+          <Route path="/super" element={<SuperAdmin/>} />
+          <Route path="/dashboard" element={<Dashboard/>} />
+          <Route path="/create" element={<CreatePlanForm/>}/>
+          <Route path='/plans' element={<PlansExplorer/>}/>
+          <Route path="/plan/:id" element={<ViewPlanByID/>}/>
         </Routes>
-      </Router>
+      
     </>
   );
 }
+

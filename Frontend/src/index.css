@@ -9,6 +9,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Audiowide&family=Bebas+Neue&family=Dancing+Script:wght@400..700&family=Huninn&family=Michroma&family=Nunito:ital,wght@0,200..1000;1,200..1000&family=Protest+Strike&display=swap");
 
 @import "tailwindcss";
+@plugin "daisyui";
 
 @theme {
   --font-bebas: Bebas Neue, "sans-serif";
