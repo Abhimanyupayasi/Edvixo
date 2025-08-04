@@ -5,14 +5,14 @@ const featureSchema = new mongoose.Schema({
   title: { type: String, required: true, trim: true },
   description: { type: String, trim: true },
   isIncluded: { type: Boolean, default: true }
-});
+}, { _id: true }); // explicitly enable _id
 
 const pricingTierSchema = new mongoose.Schema({
   duration: { type: Number, required: true },
   basePrice: { type: Number, required: true },
   discountPrice: { type: Number },
   currency: { type: String, default: 'INR' }
-});
+}, { _id: true }); // explicitly enable _id
 
 const individualPlanSchema = new mongoose.Schema({
   name: { type: String, required: true },
@@ -20,7 +20,7 @@ const individualPlanSchema = new mongoose.Schema({
   features: [featureSchema],
   pricingTiers: [pricingTierSchema],
   isActive: { type: Boolean, default: true }
-});
+}, { _id: true }); // explicitly enable _id
 
 const planSchema = new mongoose.Schema({
   type: { type: String, required: true }, // e.g., 'Coaching'
@@ -29,10 +29,7 @@ const planSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });
-//export const Plan = mongoose.models.Plan || mongoose.model('Plan', planSchema);
-// const Plan = mongoose.model('Plan', planSchema);
-// export default Plan;
 
-const Plan = mongoose.models.Plan  || mongoose.model('Plan', planSchema);
+const Plan = mongoose.models.Plan || mongoose.model('Plan', planSchema);
 
 export default Plan;
