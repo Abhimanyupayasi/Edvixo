@@ -15,44 +15,68 @@ import useUserInfo from "./clerk/ClerkRole";
 import SuperAdmin from "./layouts/SuperAdmin";
 import Dashboard from "./components/Dashboard";
 import CreatePlanForm from "./super-admin/CreatePlan";
-import PlansExplorer from "./components/pricing/ViewPricing";
 import ViewPlanByID from "./components/pricing/ViewPlanByID";
+import PlanFeatures from "./components/plans/PlanFeatures";
+import PlansExplorer from "./components/plans/PlansExplorer";
+import CreateOrderComponent from "./components/orders/CreateOrder";
 
 
 export default function App() {
-    const { isLoaded, userId } = useAuth();
-
-  const fetchData = async () => {
-    const response = await fetch('http://localhost:8000/admin', {
-      credentials: 'include' // Required for cookies
-    });
-    const data = await response.json();
-    console.log(data);
+  const { isLoaded, userId, getToken } = useAuth();
+  
+  // Enhanced fetch function with token handling
+  const fetchWithAuth = async (url, options = {}) => {
+    try {
+      const token = await getToken();
+      
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          ...options.headers,
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error("Fetch error:", error);
+      throw error;
+    }
   };
 
   useEffect(() => {
-    if (userId) fetchData();
+    if (userId) {
+      const loadData = async () => {
+        try {
+          const data = await fetchWithAuth('http://localhost:8000/admin');
+          console.log("API data:", data);
+        } catch (error) {
+          console.error("Failed to load data:", error);
+        }
+      };
+      
+      loadData();
+    }
   }, [userId]);
 
-  const user = useUser();
-  console.log(user);
-
-  
-  
   return (
-    
     <>
-      
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/super" element={<SuperAdmin/>} />
-          <Route path="/dashboard" element={<Dashboard/>} />
-          <Route path="/create" element={<CreatePlanForm/>}/>
-          <Route path='/plans' element={<PlansExplorer/>}/>
-          <Route path="/plan/:id" element={<ViewPlanByID/>}/>
-        </Routes>
-      
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/super" element={<SuperAdmin />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/create" element={<CreatePlanForm />} />
+        <Route path="/plans" element={<PlansExplorer />} />
+        <Route path="/create-plan" element={<CreateOrderComponent />} />
+        <Route path="/plan/:id" element={<ViewPlanByID />} />
+      </Routes>
     </>
   );
 }

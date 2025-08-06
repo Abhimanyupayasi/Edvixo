@@ -4,6 +4,7 @@ import express from 'express';
 import { clerkClient, clerkMiddleware, getAuth, requireAuth } from '@clerk/express';
 import cors from 'cors';
 import { isAdmin } from './src/middlewares/isAdmin.js';
+import paymentRouter from './src/routes/paymentRoutes.js';
 
 const app = express();
 
@@ -17,10 +18,6 @@ app.use(cors({
 app.use(express.json());
 app.use(clerkMiddleware());
 
-// Routes
-app.get('/', (req, res) => {
-  res.send('Welcome to the homepage!');
-});
 
 // Protected Route
 app.get('/protected', requireAuth(), async (req, res) => {
@@ -29,6 +26,7 @@ app.get('/protected', requireAuth(), async (req, res) => {
     const user = await clerkClient.users.getUser(userId);
     res.json({ user });
   } catch (error) {
+    console.log("Error", error)
     res.status(500).json({ error: 'Failed to fetch user data' });
   }
 });
@@ -52,6 +50,7 @@ import couponRoutes from './src/routes/couponRoutes.js';
 app.use('/billing', billingRoutes);
 app.use('/user', userRoutes);
 app.use('/coupon', couponRoutes);
+app.use('/payments',requireAuth(), paymentRouter );
 
 // ... error handling ...
 

@@ -1,6 +1,6 @@
 // src/index.js
 import app from './app.js';
-import {mysqlConnection, mongoDB} from './src/db/database.js'
+import { mongoDB} from './src/db/database.js'
 
 const PORT = process.env.PORT || 8000;
 
