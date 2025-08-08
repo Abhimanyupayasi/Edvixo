@@ -2,132 +2,110 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiCheckCircle, FiXCircle, FiAlertCircle, FiLoader } from "react-icons/fi";
-import axios from "axios";
-import { useAuth, useUser } from "@clerk/clerk-react";
+import { useUser } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
+import usePayment from "../../hooks/usePayment";
+import useRazorpay from "../../hooks/useRazorpay";
 
 const PlanPaymentButton = ({ plan, tier, durationText, onPaymentSuccess }) => {
-  const { getToken } = useAuth();
   const { user } = useUser();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
+  const { createOrder, verifyPayment, loading, error: paymentError } = usePayment();
+  const isRazorpayLoaded = useRazorpay();
   const [paymentStatus, setPaymentStatus] = useState(null);
-  const [retryCount, setRetryCount] = useState(0);
 
-  // Reset payment status when plan or tier changes
   useEffect(() => {
-    setPaymentStatus(null);
-  }, [plan, tier]);
+    if (!isRazorpayLoaded) {
+      // You could show a subtle loader or disable the button until the script is loaded.
+      console.log("Razorpay script is loading...");
+    }
+  }, [isRazorpayLoaded]);
 
   const handlePayment = async () => {
-    setLoading(true);
     setPaymentStatus(null);
-    
-    try {
-      const token = await getToken();
-      
-      // Step 1: Initiate payment with backend
-      const { data: paymentInit } = await axios.post(
-        `${import.meta.env.VITE_SERVER_URL}/billing/payment/initiate`,
-        { 
-          planId: plan._id, 
-          duration: tier.duration,
-          metadata: {
-            organizationId: user?.publicMetadata?.organizationId,
-            userId: user?.id
-          }
-        },
-        { 
-          headers: { 
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          } 
-        }
-      );
 
-      // Step 2: Ensure Razorpay is loaded
-      const razorpayAvailable = await ensureRazorpay();
-      if (!razorpayAvailable) {
-        throw new Error("Payment service unavailable. Please try again later.");
-      }
+    if (!user) {
+      navigate('/sign-in');
+      return;
+    }
 
-      // Step 3: Configure Razorpay options
+    if (!isRazorpayLoaded) {
+      console.error('Razorpay script not loaded yet.');
+      // Optionally, set a status to inform the user
+      setPaymentStatus('error'); 
+      return;
+    }
+
+    const organizationType = (tier?.name || 'other').toLowerCase();
+    const orderDetails = {
+      amount: tier.discountPrice || tier.basePrice,
+      currency: 'INR',
+      plan: plan, // Send the whole plan object
+      tier: tier, // Send the whole tier object
+      organizationName: user.publicMetadata?.organizationName || 'Default Org',
+      organizationType: organizationType,
+    };
+
+    const razorpayOrder = await createOrder(orderDetails);
+
+    if (razorpayOrder) {
       const options = {
         key: import.meta.env.VITE_RAZORPAY_KEY_ID,
-        amount: (paymentInit?.amount || tier.discountPrice || tier.basePrice) * 100,
-        currency: paymentInit?.currency || 'INR',
+        amount: razorpayOrder.amount,
+        currency: razorpayOrder.currency,
         name: "EduConnect Pro",
-        description: `${plan.name} (${plan.tier}) - ${durationText}`,
-        order_id: paymentInit?.orderId,
+        description: `${plan.name} - ${durationText}`,
+        order_id: razorpayOrder.id,
         image: "https://your-app-logo.png",
         handler: async (response) => {
-          try {
-            // Step 4: Verify payment with backend
-            await axios.post(
-              `${import.meta.env.VITE_SERVER_URL}/billing/payment/verify`,
-              {
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-                planId: plan._id,
-                duration: tier.duration,
-                metadata: paymentInit.metadata
-              },
-              { headers: { Authorization: `Bearer ${token}` } }
-            );
-            
+          const verificationData = {
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_signature: response.razorpay_signature,
+          };
+          const result = await verifyPayment(verificationData);
+          if (result) {
             setPaymentStatus('success');
             if (onPaymentSuccess) onPaymentSuccess();
-            
-            // Redirect to success page or refresh user data
             setTimeout(() => {
-              navigate('/payment-success', { state: { plan, tier } });
+              navigate('/payment-success', { state: { plan, tier, payment: result.payment } });
             }, 2000);
-          } catch (error) {
-            console.error('Payment verification failed:', error);
+          } else {
             setPaymentStatus('failed');
           }
         },
         prefill: {
-          name: user?.fullName || "Customer",
-          email: user?.primaryEmailAddress?.emailAddress || "customer@example.com",
-          contact: user?.primaryPhoneNumber?.phoneNumber || "9999999999"
+          name: user.fullName,
+          email: user.primaryEmailAddress?.emailAddress,
+          contact: user.primaryPhoneNumber?.phoneNumber,
         },
         notes: {
           planId: plan._id,
-          userId: user?.id,
-          organizationId: user?.publicMetadata?.organizationId
+          userId: user.id,
+          organizationId: user.publicMetadata?.organizationId,
         },
         theme: { color: "#4f46e5" },
-        modal: { 
+        modal: {
           ondismiss: () => {
             setPaymentStatus('cancelled');
-          }
-        }
+          },
+        },
       };
 
-      // Step 5: Open Razorpay checkout
       const rzp = new window.Razorpay(options);
       rzp.open();
-      
-      rzp.on('payment.failed', (response) => {
-        console.error('Payment failed:', response.error);
+      rzp.on('payment.failed', () => {
         setPaymentStatus('failed');
       });
-
-    } catch (error) {
-      console.error('Payment initiation failed:', error);
+    } else {
       setPaymentStatus('failed');
-      setRetryCount(prev => prev + 1);
-    } finally {
-      setLoading(false);
     }
   };
 
   const getButtonText = () => {
+    if (!isRazorpayLoaded) return 'Initializing Payment...';
     if (loading) return 'Processing...';
     if (!plan.isActive) return 'Currently unavailable';
-    if (retryCount > 0) return 'Try again';
     return 'Subscribe Now';
   };
 
@@ -135,25 +113,25 @@ const PlanPaymentButton = ({ plan, tier, durationText, onPaymentSuccess }) => {
     <div className="w-full">
       <button
         onClick={handlePayment}
-        disabled={loading || !plan.isActive}
+        disabled={loading || !plan.isActive || !isRazorpayLoaded}
         className={`w-full py-3 px-4 rounded-lg font-medium transition flex items-center justify-center gap-2 ${
-          loading
+          loading || !isRazorpayLoaded
             ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
             : plan.isActive
               ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-md hover:shadow-lg'
               : 'bg-gray-200 text-gray-500 cursor-not-allowed'
         }`}
       >
-        {loading && <FiLoader className="animate-spin" />}
+        {(loading || !isRazorpayLoaded) && <FiLoader className="animate-spin" />}
         {getButtonText()}
       </button>
 
-      <PaymentStatus status={paymentStatus} retryCount={retryCount} />
+      <PaymentStatus status={paymentStatus} error={paymentError} />
     </div>
   );
 };
 
-const PaymentStatus = ({ status, retryCount }) => {
+const PaymentStatus = ({ status, error }) => {
   const messages = {
     success: {
       text: 'Payment successful! Redirecting...',
@@ -161,9 +139,7 @@ const PaymentStatus = ({ status, retryCount }) => {
       color: 'green'
     },
     failed: {
-      text: retryCount > 1 ? 
-        'Payment failed. Please contact support.' : 
-        'Payment failed. Please try again.',
+      text: error || 'Payment failed. Please try again.',
       icon: <FiXCircle />,
       color: 'red'
     },
@@ -171,6 +147,11 @@ const PaymentStatus = ({ status, retryCount }) => {
       text: 'Payment cancelled. You can try again anytime.',
       icon: <FiAlertCircle />,
       color: 'yellow'
+    },
+    error: {
+      text: 'Could not initialize payment. Please refresh and try again.',
+      icon: <FiXCircle />,
+      color: 'red'
     }
   };
 
@@ -190,29 +171,5 @@ const PaymentStatus = ({ status, retryCount }) => {
     </AnimatePresence>
   );
 };
-
-// Razorpay loader with retry logic
-let razorpayLoaded = false;
-let loadingScript = false;
-const ensureRazorpay = () => 
-  new Promise((resolve) => {
-    if (razorpayLoaded && window.Razorpay) return resolve(true);
-    if (loadingScript) return resolve(false);
-
-    loadingScript = true;
-    const script = document.createElement("script");
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
-    script.async = true;
-    script.onload = () => {
-      razorpayLoaded = true;
-      loadingScript = false;
-      resolve(true);
-    };
-    script.onerror = () => {
-      loadingScript = false;
-      resolve(false);
-    };
-    document.body.appendChild(script);
-  });
 
 export default PlanPaymentButton;

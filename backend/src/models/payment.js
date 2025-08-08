@@ -28,14 +28,13 @@ const paymentSchema = new mongoose.Schema({
     enum: ['created', 'authorized', 'captured', 'refunded', 'failed'],
     default: 'created'
   },
-  planType: {
-    type: String,
-    enum: ['gold', 'premium', 'basic', 'enterprise'],
+  plan: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Plan',
     required: true
   },
-  tier: {
-    type: String,
-    enum: ['school', 'college', 'university', 'corporate'],
+  pricingTier: {
+    type: Object,
     required: true
   },
   user: {

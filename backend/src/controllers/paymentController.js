@@ -1,3 +1,4 @@
+import { clerkClient } from '@clerk/clerk-sdk-node';
 import UserDetails from '../models/UserDetails.js';
 import Payment from "../models/payment.js";
 import Razorpay from 'razorpay';
@@ -18,13 +19,19 @@ export const homePayment = async (req, res) => {
 // Create Razorpay order
 export const createOrder = async (req, res) => {
   try {
-    const { amount, currency, planType, tier, organizationName, organizationType } = req.body;
+    console.log("createOrder req.body:", JSON.stringify(req.body, null, 2));
+    const { amount, currency, plan, tier, organizationName, organizationType } = req.body;
     
-    // Clerk user is now available in req.auth
-    const clerkUserId = req.auth.userId;
+    const auth = req.auth();
+    const clerkUserId = auth.userId;
     
     if (!clerkUserId) {
       return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+
+    if (!plan || typeof plan !== 'object' || !plan._id) {
+      console.error("Invalid plan data received:", plan);
+      return res.status(400).json({ success: false, message: 'Invalid plan details provided. Plan object is missing or invalid.' });
     }
 
     const options = {
@@ -32,8 +39,9 @@ export const createOrder = async (req, res) => {
       currency: currency || 'INR',
       receipt: `receipt_${Date.now()}`,
       notes: {
-        planType,
-        tier,
+        planId: plan._id,
+        planName: plan.name,
+        tier: JSON.stringify(tier), // Store the whole tier object as a string
         organizationName,
         organizationType,
         clerkUserId
@@ -60,7 +68,8 @@ export const createOrder = async (req, res) => {
 export const verifyPayment = async (req, res) => {
   try {
     const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = req.body;
-    const clerkUserId = req.auth.userId;
+    const auth = req.auth();
+    const clerkUserId = auth.userId;
     
     if (!clerkUserId) {
       return res.status(401).json({ success: false, message: 'Unauthorized' });
@@ -79,12 +88,15 @@ export const verifyPayment = async (req, res) => {
     // Fetch order details from Razorpay
     const order = await razorpay.orders.fetch(razorpay_order_id);
     
+    // Fetch full user details from Clerk
+    const clerkUser = await clerkClient.users.getUser(clerkUserId);
+
     // Prepare user data
     const userData = {
       clerkUserId,
-      fullName: req.auth.user?.fullName || `${req.auth.user?.firstName} ${req.auth.user?.lastName}`,
-      email: req.auth.user?.emailAddresses?.[0]?.emailAddress || '',
-      phone: req.auth.user?.phoneNumbers?.[0]?.phoneNumber || '',
+      fullName: clerkUser.fullName || `${clerkUser.firstName} ${clerkUser.lastName}`,
+      email: clerkUser.emailAddresses?.[0]?.emailAddress || '',
+      phone: clerkUser.phoneNumbers?.[0]?.phoneNumber || '',
       organizationType: order.notes.organizationType,
       organizationName: order.notes.organizationName
     };
@@ -105,10 +117,12 @@ export const verifyPayment = async (req, res) => {
       await userDetails.save();
     }
     
-    // Calculate subscription dates (1 year from now)
+    const pricingTier = JSON.parse(order.notes.tier);
+
+    // Calculate subscription dates
     const subscriptionStart = new Date();
-    const subscriptionEnd = new Date();
-    subscriptionEnd.setFullYear(subscriptionEnd.getFullYear() + 1);
+    const subscriptionEnd = new Date(subscriptionStart);
+    subscriptionEnd.setMonth(subscriptionEnd.getMonth() + pricingTier.duration);
     
     // Save payment details
     const payment = new Payment({
@@ -118,14 +132,17 @@ export const verifyPayment = async (req, res) => {
       amount: order.amount / 100,
       currency: order.currency,
       status: 'captured',
-      planType: order.notes.planType,
-      tier: order.notes.tier,
+      plan: order.notes.planId,
+      pricingTier: pricingTier,
       user: userDetails._id,
       clerkUserId,
       subscriptionStart,
       subscriptionEnd,
       invoiceId: `INV-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
-      notes: order.notes
+      notes: {
+        ...order.notes,
+        planName: order.notes.planName, // Ensure planName is also stored
+      }
     });
     
     await payment.save();
@@ -150,7 +167,7 @@ export const verifyPayment = async (req, res) => {
 // Get user payments
 export const getUserPayments = async (req, res) => {
   try {
-    const clerkUserId = req.auth.userId;
+    const clerkUserId = req.auth().userId;
     
     if (!clerkUserId) {
       return res.status(401).json({ success: false, message: 'Unauthorized' });
@@ -178,7 +195,7 @@ export const getUserPayments = async (req, res) => {
 export const getPaymentById = async (req, res) => {
   try {
     const { paymentId } = req.params;
-    const clerkUserId = req.auth.userId;
+    const clerkUserId = req.auth().userId;
     
     const payment = await Payment.findOne({
       _id: paymentId,

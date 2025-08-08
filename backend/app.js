@@ -18,6 +18,10 @@ app.use(cors({
 app.use(express.json());
 app.use(clerkMiddleware());
 
+// Routes
+app.get('/', (req, res) => {
+  res.send('Welcome to the homepage!');
+});
 
 // Protected Route
 app.get('/protected', requireAuth(), async (req, res) => {

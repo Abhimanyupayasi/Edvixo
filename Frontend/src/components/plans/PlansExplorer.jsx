@@ -51,7 +51,8 @@ const PlansExplorer = () => {
   }, [getToken]);
 
   useEffect(() => { fetchPlans(); }, [fetchPlans]);
-
+  console.log(plans);
+  
   const filteredSortedPlans = useMemo(() => {
     const activePlanGroup = plans.find(p => p.type === activeTab);
     const tabPlans = activePlanGroup?.plans || [];

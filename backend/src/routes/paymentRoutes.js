@@ -16,7 +16,7 @@ router.get('/', homePayment);
 // Authenticated routes
 router.post('/orders', requireAuth(), createOrder);
 router.post('/verify', requireAuth(), verifyPayment);
-router.get('/history', requireAuth(), getUserPayments);
+router.get('/user', requireAuth(), getUserPayments);
 router.get('/:paymentId', requireAuth(), getPaymentById);
 
 export default router;

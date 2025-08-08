@@ -19,6 +19,7 @@ import ViewPlanByID from "./components/pricing/ViewPlanByID";
 import PlanFeatures from "./components/plans/PlanFeatures";
 import PlansExplorer from "./components/plans/PlansExplorer";
 import CreateOrderComponent from "./components/orders/CreateOrder";
+import PaymentSuccess from "./pages/PaymentSuccess";
 
 
 export default function App() {
@@ -76,6 +77,7 @@ export default function App() {
         <Route path="/plans" element={<PlansExplorer />} />
         <Route path="/create-plan" element={<CreateOrderComponent />} />
         <Route path="/plan/:id" element={<ViewPlanByID />} />
+        <Route path="/payment-success" element={<PaymentSuccess/>}/>
       </Routes>
     </>
   );
