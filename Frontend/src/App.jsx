@@ -20,6 +20,9 @@ import PlanFeatures from "./components/plans/PlanFeatures";
 import PlansExplorer from "./components/plans/PlansExplorer";
 import CreateOrderComponent from "./components/orders/CreateOrder";
 import PaymentSuccess from "./pages/PaymentSuccess";
+import ManagePurchasedPlan from './components/plans/ManagePurchasedPlan';
+import InstitutionWizard from './components/siteBuilder/InstitutionWizard';
+import PublicSite from './components/siteBuilder/PublicSite';
 
 
 export default function App() {
@@ -78,6 +81,11 @@ export default function App() {
         <Route path="/create-plan" element={<CreateOrderComponent />} />
         <Route path="/plan/:id" element={<ViewPlanByID />} />
         <Route path="/payment-success" element={<PaymentSuccess/>}/>
+        <Route path="/my-plan/:planId" element={<ManagePurchasedPlan />} />
+  <Route path="/my-plan/:planId/build-website" element={<Navigate to="./update-website" replace />} />
+  <Route path="/my-plan/:planId/update-website" element={<InstitutionWizard mode="update" />} />
+        <Route path="/dashboard/website-builder/basic" element={<InstitutionWizard />} />
+        <Route path="/public-site" element={<PublicSite />} />
       </Routes>
     </>
   );

@@ -195,7 +195,8 @@ export const updatePricingTier = async (req, res) => {
 
 export const getAllPlansWithoutDeals = async (req, res) => {
   try {
-    const allPlans = await Plan.find(); // Fetch all plan groups
+    const allPlans = await Plan.find()
+      .populate('plans.features.feature'); // populate nested feature docs
     res.status(200).json(allPlans);
   } catch (error) {
     console.error('Error fetching plans without deals:', error);
@@ -209,12 +210,14 @@ export const getPlansWithDeal = async (req, res) => {
     // 1. Fetch the one active deal
     const deal = await Deal.findOne({ isActive: true });
 
-    // 2. Fetch all plans
-    const allPlans = await Plan.find().lean();
+    // 2. Fetch all plans with populated features
+    const allPlans = await Plan.find()
+      .populate('plans.features.feature')
+      .lean();
 
     // 3. Apply deal to pricing tiers
     const plansWithDeal = allPlans.map(plan => {
-      const updatedPlans = plan.plans.map(p => {
+  const updatedPlans = plan.plans.map(p => {
         const updatedPricingTiers = p.pricingTiers.map(tier => {
           if (deal) {
             let discountedPrice = tier.basePrice;
@@ -247,7 +250,18 @@ export const getPlansWithDeal = async (req, res) => {
 
         return {
           ...p,
-          pricingTiers: updatedPricingTiers
+          pricingTiers: updatedPricingTiers,
+          // Ensure features retain populated structure: { feature: { _id,key,title,description,... }, isIncluded }
+          features: (p.features || []).map(f => ({
+            feature: f.feature && f.feature._id ? {
+              _id: f.feature._id,
+              key: f.feature.key,
+              title: f.feature.title,
+              description: f.feature.description,
+              category: f.feature.category
+            } : f.feature, // fallback
+            isIncluded: f.isIncluded
+          }))
         };
       });
 

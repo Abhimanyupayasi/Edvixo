@@ -1,6 +1,20 @@
 // src/index.js
 import app from './app.js';
-import { mongoDB} from './src/db/database.js'
+import dotenv from 'dotenv';
+dotenv.config();
+import connectDB from './src/db/database.js';
+
+connectDB()
+  .then(() => {
+    console.log('✅ MongoDB connected successfully.');
+  })
+  .catch((error) => {
+    console.error('❌ MongoDB connection failed:', error);
+    process.exit(1);
+  });
+
+ 
+
 
 const PORT = process.env.PORT || 8000;
 

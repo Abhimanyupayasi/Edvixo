@@ -47,14 +47,30 @@ app.get('/admin', requireAuth(), isAdmin, (req, res) => {
 import billingRoutes from './src/routes/billingRoutes.js';
 import userRoutes from './src/routes/userRoutes.js';
 import couponRoutes from './src/routes/couponRoutes.js';
+import featureRoutes from './src/routes/featureRoutes.js';
+import institutionRoutes from './src/routes/institutionRoutes.js';
+import { getSignedUploadParams } from './src/utils/cloudinary.js';
 
 
 // ... other middleware ...
 
 app.use('/billing', billingRoutes);
+app.use('/billing', (req,res,next)=>{ console.log('Billing route hit:', req.method, req.originalUrl); next(); });
 app.use('/user', userRoutes);
 app.use('/coupon', couponRoutes);
+app.use('/features', requireAuth(), featureRoutes);
 app.use('/payments',requireAuth(), paymentRouter );
+app.use('/institutions', institutionRoutes);
+
+// image upload signature endpoint (authenticated)
+app.get('/media/signature', requireAuth(), (req,res)=>{
+  try {
+    const params = getSignedUploadParams();
+    res.json({ success:true, data:params });
+  } catch (e) {
+    res.status(500).json({ success:false, message:e.message });
+  }
+});
 
 // ... error handling ...
 

@@ -39,7 +39,8 @@ export const createOrder = async (req, res) => {
       currency: currency || 'INR',
       receipt: `receipt_${Date.now()}`,
       notes: {
-        planId: plan._id,
+        planId: plan.parentId, // The ID of the main plan document (e.g., 'Coaching')
+        individualPlanId: plan._id, // The ID of the specific plan chosen (e.g., 'Silver Plan')
         planName: plan.name,
         tier: JSON.stringify(tier), // Store the whole tier object as a string
         organizationName,
@@ -132,7 +133,7 @@ export const verifyPayment = async (req, res) => {
       amount: order.amount / 100,
       currency: order.currency,
       status: 'captured',
-      plan: order.notes.planId,
+      plan: order.notes.individualPlanId, // Storing the ID of the specific sub-plan
       pricingTier: pricingTier,
       user: userDetails._id,
       clerkUserId,

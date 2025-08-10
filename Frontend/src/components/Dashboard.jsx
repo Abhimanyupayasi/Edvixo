@@ -1,8 +1,11 @@
-import { FiCreditCard, FiCheckCircle, FiClock, FiAlertTriangle, FiDownload, FiTrendingUp, FiPackage, FiChevronDown } from 'react-icons/fi';
+import { FiCreditCard, FiCheckCircle, FiClock, FiAlertTriangle, FiDownload, FiTrendingUp, FiPackage } from 'react-icons/fi';
 import usePayments from '../hooks/usePayments';
+import useFeatures from '../hooks/useFeatures';
 import { generateInvoicePdf } from '../utils/pdfGenerator';
 import { useUser } from '@clerk/clerk-react';
 import { Link } from 'react-router-dom';
+import FeatureCard from './utils/FeatureCard'; // Import the new component
+import MyPurchasedPlans from './plans/MyPurchasedPlans';
 
 const StatCard = ({ icon, title, value, desc, color }) => (
   <div className={`stat shadow-lg rounded-2xl bg-base-100 border-l-4 ${color} transition-transform transform hover:scale-105`}>
@@ -20,7 +23,7 @@ const SubscriptionCard = ({ payment, onDownloadInvoice }) => {
   
   const totalDuration = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
   const daysLeft = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
-  const progress = Math.max(0, Math.min(100, (daysLeft / totalDuration) * 100));
+  const progress = Math.max(0, Math.min(100, ((totalDuration - daysLeft) / totalDuration) * 100));
 
   const getProgressColor = () => {
     if (daysLeft <= 0) return 'progress-error';
@@ -51,7 +54,7 @@ const SubscriptionCard = ({ payment, onDownloadInvoice }) => {
           ></progress>
         </div>
 
-        <div className="card-actions justify-end">
+        <div className="card-actions justify-end mt-4">
           <button 
             className="btn btn-ghost btn-sm"
             onClick={() => onDownloadInvoice(payment)}
@@ -66,7 +69,8 @@ const SubscriptionCard = ({ payment, onDownloadInvoice }) => {
 
 
 const Dashboard = () => {
-  const { payments, loading, error } = usePayments();
+  const { payments, loading: loadingPayments, error: errorPayments } = usePayments();
+  const { features, isLoading: isLoadingFeatures, error: errorFeatures } = useFeatures();
   const { user } = useUser();
 
   const now = new Date();
@@ -96,7 +100,7 @@ const Dashboard = () => {
     generateInvoicePdf(paymentDetails);
   };
 
-  if (loading) {
+  if (loadingPayments) {
     return (
       <div className="flex justify-center items-center h-screen bg-base-200">
         <span className="loading loading-lg loading-spinner text-primary"></span>
@@ -104,11 +108,12 @@ const Dashboard = () => {
     );
   }
 
-  if (error) {
+  const combinedError = errorPayments || errorFeatures;
+  if (combinedError) {
     return (
       <div role="alert" className="alert alert-error max-w-2xl mx-auto mt-10">
         <FiAlertTriangle />
-        <span><strong>Error:</strong> {error}</span>
+        <span><strong>Error:</strong> {combinedError.message || combinedError}</span>
       </div>
     );
   }
@@ -141,13 +146,49 @@ const Dashboard = () => {
           />
         </div>
 
+        {/* Your Features Section */}
+        <div className="mb-10">
+          <h2 className="text-2xl font-bold mb-6">Your Features</h2>
+          {isLoadingFeatures ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Skeleton Loader */}
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="skeleton h-40 w-full"></div>
+              ))}
+            </div>
+          ) : features && features.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {features.map(feature => (
+                <FeatureCard key={feature.key} feature={feature} />
+              ))}
+            </div>
+          ) : (
+            <div className="card bg-base-100 shadow-md">
+              <div className="card-body items-center text-center">
+                <p className="text-base-content/70">You have no active features. Purchase a plan to get started.</p>
+                <Link to="/pricing" className="btn btn-primary mt-4">Explore Plans</Link>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Purchased Plans */}
+        <div className="mb-10">
+          <h2 className="text-2xl font-bold mb-6">Your Plans</h2>
+          <MyPurchasedPlans />
+        </div>
+
         {/* Active Subscriptions */}
         <div className="mb-10">
           <h2 className="text-2xl font-bold mb-6">Your Active Subscriptions</h2>
           {activeSubscriptions.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {activeSubscriptions.map(sub => (
-                <SubscriptionCard key={sub._id} payment={sub} onDownloadInvoice={handleDownloadInvoice} />
+                <SubscriptionCard 
+                  key={sub._id} 
+                  payment={sub} 
+                  onDownloadInvoice={handleDownloadInvoice}
+                />
               ))}
             </div>
           ) : (

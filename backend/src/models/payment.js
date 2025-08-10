@@ -30,7 +30,8 @@ const paymentSchema = new mongoose.Schema({
   },
   plan: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Plan',
+    // This ID refers to the specific sub-plan within the Plan document's 'plans' array.
+    // We do not use a `ref` here because it's a nested sub-document, not a separate collection.
     required: true
   },
   pricingTier: {

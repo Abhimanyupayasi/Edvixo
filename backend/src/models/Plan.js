@@ -1,26 +1,32 @@
 // models/Plan.js
 import mongoose from 'mongoose';
 
-const featureSchema = new mongoose.Schema({
-  title: { type: String, required: true, trim: true },
-  description: { type: String, trim: true },
-  isIncluded: { type: Boolean, default: true }
-}, { _id: true }); // explicitly enable _id
+const planFeatureSchema = new mongoose.Schema({
+  feature: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Feature',
+    required: true
+  },
+  isIncluded: {
+    type: Boolean,
+    default: true
+  }
+}, { _id: false });
 
 const pricingTierSchema = new mongoose.Schema({
-  duration: { type: Number, required: true },
+  duration: { type: Number, required: true }, // in months
   basePrice: { type: Number, required: true },
   discountPrice: { type: Number },
   currency: { type: String, default: 'INR' }
-}, { _id: true }); // explicitly enable _id
+}, { _id: true });
 
 const individualPlanSchema = new mongoose.Schema({
   name: { type: String, required: true },
   description: String,
-  features: [featureSchema],
+  features: [planFeatureSchema],
   pricingTiers: [pricingTierSchema],
   isActive: { type: Boolean, default: true }
-}, { _id: true }); // explicitly enable _id
+}, { _id: true });
 
 const planSchema = new mongoose.Schema({
   type: { type: String, required: true }, // e.g., 'Coaching'

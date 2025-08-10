@@ -20,19 +20,24 @@ import mongoose from 'mongoose';
 // });
 
 // ==== MongoDB Connection ====
-const mongoURI = process.env.MONGO_URI; // replace 'yourdbname' with your DB name
+const connectDB = async () => {
+  try {
+    if (mongoose.connection.readyState >= 1) {
+      return;
+    }
+    await mongoose.connect(process.env.MONGO_URI);
+  } catch (error) {
+    console.error('❌ MongoDB Connection Error:', error);
+    process.exit(1);
+  }
+};
 
-mongoose.connect(mongoURI);
-
-const mongoDB = mongoose.connection;
-
-mongoDB.on('error', (err) => {
-  console.error('❌ MongoDB Connection Error:', err);
-});
-
-mongoDB.once('open', () => {
+mongoose.connection.on('connected', () => {
   console.log('✅ Connected to MongoDB database');
 });
 
-// Export both connections
-export { mongoDB };
+mongoose.connection.on('error', (err) => {
+  console.error('❌ MongoDB Connection Error:', err);
+});
+
+export default connectDB;
