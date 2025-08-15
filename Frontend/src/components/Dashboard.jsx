@@ -71,11 +71,13 @@ const SubscriptionCard = ({ payment, onDownloadInvoice }) => {
 const Dashboard = () => {
   const { payments, loading: loadingPayments, error: errorPayments } = usePayments();
   const { features, isLoading: isLoadingFeatures, error: errorFeatures } = useFeatures();
+  const paymentsList = Array.isArray(payments) ? payments : [];
+  const featuresList = Array.isArray(features) ? features : [];
   const { user } = useUser();
 
   const now = new Date();
-  const activeSubscriptions = payments?.filter(p => new Date(p.subscriptionEnd) > now) || [];
-  const totalSpent = payments?.reduce((acc, p) => acc + p.amount, 0).toFixed(2);
+  const activeSubscriptions = paymentsList.filter(p => new Date(p.subscriptionEnd) > now);
+  const totalSpent = paymentsList.reduce((acc, p) => acc + (Number(p.amount) || 0), 0).toFixed(2);
 
   const getStatusBadge = (endDate) => {
     const end = new Date(endDate);
@@ -141,7 +143,7 @@ const Dashboard = () => {
            <StatCard
             icon={<FiCreditCard />}
             title="Total Transactions"
-            value={payments.length}
+            value={paymentsList.length}
             color="border-info"
           />
         </div>
@@ -156,9 +158,9 @@ const Dashboard = () => {
                 <div key={i} className="skeleton h-40 w-full"></div>
               ))}
             </div>
-          ) : features && features.length > 0 ? (
+      ) : featuresList.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {features.map(feature => (
+        {featuresList.map(feature => (
                 <FeatureCard key={feature.key} feature={feature} />
               ))}
             </div>
@@ -221,8 +223,8 @@ const Dashboard = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {payments.length > 0 ? (
-                    payments.map((payment) => (
+                  {paymentsList.length > 0 ? (
+                    paymentsList.map((payment) => (
                       <tr key={payment._id} className="hover">
                         <td className="font-mono text-xs">{payment.invoiceId}</td>
                         <td>

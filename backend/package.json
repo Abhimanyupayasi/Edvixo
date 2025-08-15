@@ -18,16 +18,18 @@
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "crypto": "^1.0.1",
+    "csv-parse": "^6.1.0",
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.17.0",
     "mongoose-aggregate-paginate-v2": "^1.1.4",
-    "multer": "^2.0.1",
+    "multer": "^2.0.2",
     "mysql2": "^3.14.2",
     "nodemon": "^3.1.10",
     "prettier": "^3.6.2",
     "razorpay": "^2.9.6",
-    "slugify": "^1.6.6"
+    "slugify": "^1.6.6",
+    "xlsx": "^0.18.5"
   }
 }

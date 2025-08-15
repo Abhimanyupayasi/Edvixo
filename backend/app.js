@@ -49,6 +49,7 @@ import userRoutes from './src/routes/userRoutes.js';
 import couponRoutes from './src/routes/couponRoutes.js';
 import featureRoutes from './src/routes/featureRoutes.js';
 import institutionRoutes from './src/routes/institutionRoutes.js';
+import studentRoutes from './src/routes/studentRoutes.js';
 import { getSignedUploadParams } from './src/utils/cloudinary.js';
 
 
@@ -61,6 +62,9 @@ app.use('/coupon', couponRoutes);
 app.use('/features', requireAuth(), featureRoutes);
 app.use('/payments',requireAuth(), paymentRouter );
 app.use('/institutions', institutionRoutes);
+// Debug log for students routes
+app.use('/students', (req,res,next)=>{ console.log('Students route hit:', req.method, req.originalUrl); next(); });
+app.use('/students', requireAuth(), studentRoutes);
 
 // image upload signature endpoint (authenticated)
 app.get('/media/signature', requireAuth(), (req,res)=>{

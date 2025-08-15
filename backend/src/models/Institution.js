@@ -42,6 +42,8 @@ const InstitutionSchema = new mongoose.Schema({
   slug: { type: String, required: true, unique: true },
   subdomain: { type: String, required: true, unique: true },
   type: { type: String, enum:['school','college','coaching'], required: true },
+  // A 4-digit institution numeric code for roll number generation (e.g., 0192)
+  instCode: { type: Number },
   logoUrl: String,
   hero: {
     headline: String,

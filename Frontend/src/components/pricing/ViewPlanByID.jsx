@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { useAuth } from "@clerk/clerk-react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import {
   FiArrowLeft,
   FiCheckCircle,
@@ -155,7 +155,9 @@ export default function ViewPlanByID({
                 <FiEdit3 /> Edit
               </button>
             )}
+            <Link className="btn btn-ghost btn-sm" to={`/my-plan/${plan._id}/allstudents`}>All Students</Link>
           </div>
+
         </div>
 
         {/* Content States */}

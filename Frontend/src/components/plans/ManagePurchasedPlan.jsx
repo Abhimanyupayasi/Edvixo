@@ -3,6 +3,10 @@ import { useParams, Link } from 'react-router-dom';
 import usePlanDetails from '../../hooks/usePlanDetails';
 import useMyInstitutions from '../../hooks/useMyInstitutions';
 import { FiArrowLeft, FiRefreshCw, FiSearch, FiGrid, FiList, FiClock, FiCheckCircle, FiAlertTriangle } from 'react-icons/fi';
+import axios from 'axios';
+import { useAuth } from '@clerk/clerk-react';
+import { serverURL } from '../../utils/envExport';
+import AddStudent from '../students/AddStudent';
 
 const Skeleton = () => (
   <div className="animate-pulse space-y-6 max-w-5xl mx-auto">
@@ -27,9 +31,21 @@ const ManagePurchasedPlan = () => {
   const { planId } = useParams();
   const { plan, loading, error } = usePlanDetails(planId);
   const { institutions, error: instError } = useMyInstitutions(planId);
+  const { getToken } = useAuth();
   const [view, setView] = useState('grid');
   const [query, setQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
+  // academics state
+  const [items, setItems] = useState([]);
+  const [acadLoading, setAcadLoading] = useState(false);
+  const [acadError, setAcadError] = useState('');
+  const [form, setForm] = useState({ name:'', section:'', grade:'', timing:'', durationMonths:'', description:'' });
+  // students state (school only)
+  const [selectedClassId, setSelectedClassId] = useState('');
+  const [students, setStudents] = useState([]);
+  const [stuLoading, setStuLoading] = useState(false);
+  const [stuError, setStuError] = useState('');
+  const [stuForm, setStuForm] = useState({ name:'', rollNo:'', admissionNo:'', gender:'', dob:'', email:'', phone:'', address:'', city:'', state:'', pincode:'', fatherName:'', motherName:'', guardianName:'', fatherPhone:'', motherPhone:'', guardianPhone:'', parentEmail:'', feeTotal:'', feePaid:'' });
 
   const categories = useMemo(()=>{
     if (!plan) return [];
@@ -47,6 +63,58 @@ const ManagePurchasedPlan = () => {
     });
   },[plan, query, categoryFilter]);
 
+  // Compute type and active institution early so the effect can run before any early returns
+  const inferredType = plan?.parentPlanType?.toLowerCase?.();
+  const activeInst = institutions && institutions.length ? institutions[0] : null;
+  const apiBase = serverURL || 'http://localhost:8000';
+
+  // load list of classes/batches/courses based on type
+  useEffect(()=>{
+    const load = async () => {
+      if (!activeInst || !inferredType) return;
+      setAcadLoading(true); setAcadError('');
+      try {
+        const token = await getToken();
+        let path = '';
+        if (inferredType === 'school') path = 'classes';
+        else if (inferredType === 'coaching') path = 'batches';
+        else if (inferredType === 'college') path = 'courses';
+        else { setItems([]); return; }
+        const res = await axios.get(`${apiBase}/institutions/${activeInst._id}/${path}`,{ headers:{ Authorization:`Bearer ${token}` }});
+        setItems(res.data?.data || []);
+      } catch(e){ setAcadError(e?.response?.data?.message || e.message || 'Failed to load'); }
+      finally { setAcadLoading(false); }
+    };
+    load();
+  }, [activeInst?._id, inferredType, getToken, apiBase]);
+
+  // load students for selected class (school only)
+  useEffect(()=>{
+    const loadStudents = async ()=>{
+      if (!activeInst || inferredType !== 'school' || !selectedClassId) { setStudents([]); return; }
+      setStuLoading(true); setStuError('');
+      try{
+        const token = await getToken();
+  const res = await axios.get(`${apiBase}/institutions/classes/${selectedClassId}/students`, { headers:{ Authorization:`Bearer ${token}` }});
+        setStudents(res.data?.data || []);
+      } catch(e){
+        const msg = e?.response?.data?.message || e.message || 'Failed to load students';
+        setStuError(msg);
+      }
+      finally { setStuLoading(false); }
+    };
+    loadStudents();
+  }, [selectedClassId, activeInst?._id, inferredType, getToken, apiBase]);
+
+  // keep selected class valid; auto-select the first when none
+  useEffect(()=>{
+    if (inferredType !== 'school') return;
+    if (!items || items.length === 0) return;
+    if (!selectedClassId) {
+      setSelectedClassId(items[0]._id);
+    }
+  }, [items, inferredType, selectedClassId]);
+
   if (loading) return <Skeleton />;
   if (error) return <div className="alert alert-error max-w-3xl mx-auto mt-6">Failed to load plan.</div>;
   if (!plan) return <div className="py-12 text-center">Plan not found.</div>;
@@ -56,6 +124,25 @@ const ManagePurchasedPlan = () => {
   const totalDays = Math.ceil((new Date(sub.subscriptionEnd) - new Date(sub.subscriptionStart))/(1000*60*60*24));
   const daysUsed = Math.max(0, totalDays - Math.ceil((new Date(sub.subscriptionEnd) - Date.now())/(1000*60*60*24)));
   const progress = Math.min(100, Math.max(0, (daysUsed/totalDays)*100));
+
+  const handleCreate = async (e) => {
+    e.preventDefault();
+    if (!activeInst || !inferredType) return;
+    setAcadError('');
+    try {
+      const token = await getToken();
+      let path = '';
+      let payload = { description: form.description, name: form.name };
+      if (inferredType === 'school') { path = 'classes'; payload = { ...payload, section: form.section || undefined, grade: form.grade || undefined }; }
+      if (inferredType === 'coaching') { path = 'batches'; payload = { ...payload, timing: form.timing || undefined }; }
+      if (inferredType === 'college') { path = 'courses'; payload = { ...payload, durationMonths: Number(form.durationMonths) || undefined }; }
+      await axios.post(`${apiBase}/institutions/${activeInst._id}/${path}`, payload, { headers:{ Authorization:`Bearer ${token}` }});
+      setForm({ name:'', section:'', grade:'', timing:'', durationMonths:'', description:'' });
+      // reload
+      const listRes = await axios.get(`${apiBase}/institutions/${activeInst._id}/${path}`, { headers:{ Authorization:`Bearer ${token}` }});
+      setItems(listRes.data?.data || []);
+    } catch(e){ setAcadError(e?.response?.data?.message || e.message || 'Failed to create'); }
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 pb-16">
@@ -70,6 +157,7 @@ const ManagePurchasedPlan = () => {
           <p className="text-sm opacity-70">Plan Type: {plan.parentPlanType}</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Link to={`/my-plan/${planId}/allstudents`} className="btn btn-ghost btn-sm">All Students</Link>
           <button className="btn btn-outline btn-sm"><FiRefreshCw className="text-info"/> Renew</button>
           <Link to="/plans" className="btn btn-primary btn-sm">Upgrade</Link>
           {instError && <div className="text-error text-xs">Institution load failed</div>}
@@ -149,6 +237,119 @@ const ManagePurchasedPlan = () => {
               {categories.length > 7 && <span className="badge badge-neutral badge-outline text-xs">+{categories.length-7}</span>}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Academics management based on plan type */}
+      <div className="card bg-base-100 shadow-lg border border-base-300 mb-10">
+        <div className="card-body">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <h2 className="card-title text-lg">
+              {inferredType === 'school' && 'Classes'}
+              {inferredType === 'coaching' && 'Batches'}
+              {inferredType === 'college' && 'Courses'}
+              {!inferredType && 'Academics'}
+            </h2>
+            <div className="flex items-center gap-2">
+              <Link to={`/my-plan/${planId}/students`} className="btn btn-sm">Manage Students</Link>
+              <Link to={`/my-plan/${planId}/allstudents`} className="btn btn-ghost btn-sm">All Students</Link>
+              {acadLoading && <span className="loading loading-spinner loading-xs" />}
+            </div>
+          </div>
+          {!activeInst ? (
+            <div className="alert alert-warning">
+              Create your institution site first to manage {inferredType || 'academics'}. <Link to={`/my-plan/${planId}/update-website`} className="link">Build Website</Link>
+            </div>
+          ) : (
+            <>
+              {acadError && <div className="alert alert-error mb-3">{acadError}</div>}
+              <form onSubmit={handleCreate} className="grid md:grid-cols-5 gap-3 items-end">
+                <div className="form-control md:col-span-2">
+                  <label className="label"><span className="label-text text-sm">Name</span></label>
+                  <input className="input input-bordered" value={form.name} onChange={e=>setForm(f=>({...f, name:e.target.value}))} placeholder={inferredType==='school'?'e.g., Class 10':'e.g., Foundation Batch'} required />
+                </div>
+                {inferredType==='school' && (
+                  <>
+                    <div className="form-control">
+                      <label className="label"><span className="label-text text-sm">Section</span></label>
+                      <input className="input input-bordered" value={form.section} onChange={e=>setForm(f=>({...f, section:e.target.value}))} placeholder="A / B / C" />
+                    </div>
+                    <div className="form-control">
+                      <label className="label"><span className="label-text text-sm">Grade</span></label>
+                      <input className="input input-bordered" value={form.grade} onChange={e=>setForm(f=>({...f, grade:e.target.value}))} placeholder="10 / 12" />
+                    </div>
+                  </>
+                )}
+                {inferredType==='coaching' && (
+                  <div className="form-control">
+                    <label className="label"><span className="label-text text-sm">Timing</span></label>
+                    <input className="input input-bordered" value={form.timing} onChange={e=>setForm(f=>({...f, timing:e.target.value}))} placeholder="6-8 PM" />
+                  </div>
+                )}
+                {inferredType==='college' && (
+                  <div className="form-control">
+                    <label className="label"><span className="label-text text-sm">Duration (months)</span></label>
+                    <input type="number" min="1" className="input input-bordered" value={form.durationMonths} onChange={e=>setForm(f=>({...f, durationMonths:e.target.value}))} placeholder="36" required />
+                  </div>
+                )}
+                <div className="form-control md:col-span-2">
+                  <label className="label"><span className="label-text text-sm">Description</span></label>
+                  <input className="input input-bordered" value={form.description} onChange={e=>setForm(f=>({...f, description:e.target.value}))} placeholder="Optional notes" />
+                </div>
+                <button className="btn btn-primary">Add</button>
+              </form>
+
+              <div className="mt-5 overflow-x-auto">
+                <table className="table table-sm">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      {inferredType==='school' && <th>Section</th>}
+                      {inferredType==='school' && <th>Grade</th>}
+                      {inferredType==='coaching' && <th>Timing</th>}
+                      {inferredType==='college' && <th>Duration (m)</th>}
+                      <th>Description</th>
+                      {(inferredType==='school' || inferredType==='coaching' || inferredType==='college') && <th></th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map(it => (
+                      <tr key={it._id} className="hover">
+                        <td className="font-medium">{it.name}</td>
+                        {inferredType==='school' && <td>{it.section || '-'}</td>}
+                        {inferredType==='school' && <td>{it.grade || '-'}</td>}
+                        {inferredType==='coaching' && <td>{it.timing || '-'}</td>}
+                        {inferredType==='college' && <td>{it.durationMonths || '-'}</td>}
+                        <td className="max-w-xs whitespace-normal text-xs opacity-80">{it.description || '-'}</td>
+                        {(inferredType==='school') && (
+                          <td className="text-right">
+                            <Link to={`/my-plan/${planId}/students?instId=${activeInst._id}&classId=${it._id}`} className="btn btn-ghost btn-xs">Add students</Link>
+                          </td>
+                        )}
+                        {(inferredType==='coaching') && (
+                          <td className="text-right">
+                            <Link to={`/my-plan/${planId}/students?instId=${activeInst._id}&batchId=${it._id}`} className="btn btn-ghost btn-xs">Add students</Link>
+                          </td>
+                        )}
+                        {(inferredType==='college') && (
+                          <td className="text-right">
+                            <Link to={`/my-plan/${planId}/students?instId=${activeInst._id}&courseId=${it._id}`} className="btn btn-ghost btn-xs">Add students</Link>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                    {items.length === 0 && (
+                      <tr>
+                        <td colSpan={(inferredType==='school')?5:(inferredType==='coaching'?4:4)} className="text-center py-6 opacity-70">No items yet.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Students panel hidden on this page: navigate to Students routes instead */}
+            </>
+          )}
         </div>
       </div>
 
