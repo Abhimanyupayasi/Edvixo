@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { setToken as setStudentToken, clearToken as clearStudentToken, setProfile as setStudentProfile, clearProfile as clearStudentProfile } from '../../store/studentSlice';
 import { serverURL } from '../../utils/envExport';
 
 export default function StudentLogin({ site }){
@@ -7,7 +9,9 @@ export default function StudentLogin({ site }){
   const [loading,setLoading] = useState(false);
   const [error,setError] = useState('');
   const [profile,setProfile] = useState(null);
-  const [token,setToken] = useState('');
+  const dispatch = useDispatch();
+  const token = useSelector(state => state.student.token);
+  const profileState = useSelector(state => state.student.profile);
 
   const base = serverURL || '';
 
@@ -23,7 +27,10 @@ export default function StudentLogin({ site }){
       });
       const json = await res.json();
       if(!res.ok || !json.success){ throw new Error(json.message || 'Login failed'); }
-      if (json.access) setToken(json.access);
+      if (json.access) {
+        dispatch(setStudentToken(json.access));
+        try { localStorage.setItem('student_access', json.access); } catch {}
+      }
       // fetch profile
       await fetchProfile(json.access);
     }catch(e){ setError(e.message); }
@@ -32,8 +39,8 @@ export default function StudentLogin({ site }){
 
   async function fetchProfile(accessOverride){
     setError('');
-    const headers = {};
-    const tok = accessOverride || token;
+  const headers = {};
+  const tok = accessOverride || token || (()=>{ try { return localStorage.getItem('student_access') || ''; } catch { return ''; } })();
     if (tok) headers['x-student-access'] = tok;
     let res = await fetch(`${base}/public/student/me`,{ credentials:'include', headers });
     if (res.status === 401){
@@ -41,27 +48,46 @@ export default function StudentLogin({ site }){
       const r = await fetch(`${base}/public/auth/refresh`,{ method:'POST', credentials:'include' });
       try {
         const jr = await r.json().catch(()=>({}));
-        if (jr?.access) { setToken(jr.access); headers['x-student-access'] = jr.access; }
+        if (jr?.access) {
+          dispatch(setStudentToken(jr.access));
+          try { localStorage.setItem('student_access', jr.access); } catch {}
+          headers['x-student-access'] = jr.access;
+        }
       } catch {}
       res = await fetch(`${base}/public/student/me`,{ credentials:'include', headers });
     }
     const json = await res.json();
-    if(res.ok && json.success){ setProfile(json.data); }
+    if(res.ok && json.success){
+      dispatch(setStudentProfile(json.data));
+      setProfile(json.data);
+    }
     else { setError(json.message || 'Failed to load profile'); }
   }
 
   function logout(){
     fetch(`${base}/public/auth/logout`,{ method:'POST', credentials:'include' })
-      .finally(()=> setProfile(null));
+      .finally(()=> {
+        dispatch(clearStudentProfile());
+        dispatch(clearStudentToken());
+        try { localStorage.removeItem('student_access'); } catch {}
+        setProfile(null);
+      });
   }
 
   // Try to restore session on mount
-  useEffect(()=>{ fetchProfile(); // ignore error silently on first load
+  useEffect(()=>{
+    // Restore persisted token
+    try {
+      const t = localStorage.getItem('student_access');
+      if (t) dispatch(setStudentToken(t));
+    } catch {}
+    fetchProfile(); // ignore error silently on first load
     // eslint-disable-next-line react-hooks/exhaustive-deps
   },[]);
 
-  if(profile){
-    const s = profile.student; const inst = profile.institution; const scope = profile.scope;
+  if(profile || profileState){
+    const p = profile || profileState;
+    const s = p.student; const inst = p.institution; const scope = p.scope;
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-3">
