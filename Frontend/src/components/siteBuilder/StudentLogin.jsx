@@ -7,6 +7,7 @@ export default function StudentLogin({ site }){
   const [loading,setLoading] = useState(false);
   const [error,setError] = useState('');
   const [profile,setProfile] = useState(null);
+  const [token,setToken] = useState('');
 
   const base = serverURL || '';
 
@@ -22,19 +23,27 @@ export default function StudentLogin({ site }){
       });
       const json = await res.json();
       if(!res.ok || !json.success){ throw new Error(json.message || 'Login failed'); }
+      if (json.access) setToken(json.access);
       // fetch profile
-      await fetchProfile();
+      await fetchProfile(json.access);
     }catch(e){ setError(e.message); }
     finally{ setLoading(false); }
   }
 
-  async function fetchProfile(){
+  async function fetchProfile(accessOverride){
     setError('');
-    let res = await fetch(`${base}/public/student/me`,{ credentials:'include' });
+    const headers = {};
+    const tok = accessOverride || token;
+    if (tok) headers['x-student-access'] = tok;
+    let res = await fetch(`${base}/public/student/me`,{ credentials:'include', headers });
     if (res.status === 401){
       // try refresh
-      await fetch(`${base}/public/auth/refresh`,{ method:'POST', credentials:'include' });
-      res = await fetch(`${base}/public/student/me`,{ credentials:'include' });
+      const r = await fetch(`${base}/public/auth/refresh`,{ method:'POST', credentials:'include' });
+      try {
+        const jr = await r.json().catch(()=>({}));
+        if (jr?.access) { setToken(jr.access); headers['x-student-access'] = jr.access; }
+      } catch {}
+      res = await fetch(`${base}/public/student/me`,{ credentials:'include', headers });
     }
     const json = await res.json();
     if(res.ok && json.success){ setProfile(json.data); }
