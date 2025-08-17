@@ -3,6 +3,7 @@ import 'dotenv/config';
 import express from 'express';
 import { clerkClient, clerkMiddleware, getAuth, requireAuth } from '@clerk/express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import { isAdmin } from './src/middlewares/isAdmin.js';
 import paymentRouter from './src/routes/paymentRoutes.js';
 
@@ -16,6 +17,7 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
+app.use(cookieParser());
 app.use(clerkMiddleware());
 
 // Routes
@@ -51,6 +53,8 @@ import featureRoutes from './src/routes/featureRoutes.js';
 import institutionRoutes from './src/routes/institutionRoutes.js';
 import studentRoutes from './src/routes/studentRoutes.js';
 import { getSignedUploadParams } from './src/utils/cloudinary.js';
+import publicAuthRoutes from './src/routes/publicAuthRoutes.js';
+import publicStudentRoutes from './src/routes/publicStudentRoutes.js';
 
 
 // ... other middleware ...
@@ -65,6 +69,10 @@ app.use('/institutions', institutionRoutes);
 // Debug log for students routes
 app.use('/students', (req,res,next)=>{ console.log('Students route hit:', req.method, req.originalUrl); next(); });
 app.use('/students', requireAuth(), studentRoutes);
+
+// Public (student) routes - no Clerk auth
+app.use('/public/auth', publicAuthRoutes);
+app.use('/public/student', publicStudentRoutes);
 
 // image upload signature endpoint (authenticated)
 app.get('/media/signature', requireAuth(), (req,res)=>{

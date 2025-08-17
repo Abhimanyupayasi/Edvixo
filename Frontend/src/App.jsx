@@ -7,7 +7,7 @@ import {
   useAuth
 } from "@clerk/clerk-react";
 import { useUser } from "@clerk/clerk-react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router";
+import { Routes, Route, Navigate } from "react-router-dom";
 import Home from "./components/Home";
 import AllStudentsPage from './components/students/AllStudentsPage';
 import About from "./components/About";
@@ -25,6 +25,8 @@ import ManagePurchasedPlan from './components/plans/ManagePurchasedPlan';
 import StudentsPage from './components/students/StudentsPage';
 import InstitutionWizard from './components/siteBuilder/InstitutionWizard';
 import PublicSite from './components/siteBuilder/PublicSite';
+import StudentLoginPage from './pages/StudentLoginPage.jsx';
+import StudentDashboardPage from './pages/StudentDashboardPage.jsx';
 
 
 export default function App() {
@@ -89,7 +91,11 @@ export default function App() {
   <Route path="/my-plan/:planId/build-website" element={<Navigate to="./update-website" replace />} />
   <Route path="/my-plan/:planId/update-website" element={<InstitutionWizard mode="update" />} />
         <Route path="/dashboard/website-builder/basic" element={<InstitutionWizard />} />
-        <Route path="/public-site" element={<PublicSite />} />
+        <Route path="/public-site" element={<PublicSite />}>
+          <Route path="student-login" element={<StudentLoginPage />} />
+          <Route path="student-dashboard" element={<StudentDashboardPage />} />
+        </Route>
+  {/* Legacy direct routes (optional): keep or remove */}
       </Routes>
     </>
   );

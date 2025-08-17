@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, Outlet } from 'react-router-dom';
+import StudentLogin from './StudentLogin.jsx';
+import StudentDashboardPage from '../../pages/StudentDashboardPage.jsx';
 import { serverURL } from '../../utils/envExport';
 import { PageRegistry, applyPalette } from './publicTheme.jsx';
 
@@ -17,7 +19,14 @@ const PageRenderer = ({ page, site }) => {
 
 const PublicSite = () => {
   const q = useQuery();
-  const sub = q.site;
+  const rawSite = q.site || '';
+  // Allow query-style child route: ?site=subdomain/student-login
+  const [sub, childRoute] = useMemo(() => {
+    if (!rawSite) return [null, null];
+    const parts = rawSite.split('/');
+    if (parts.length > 1) return [parts[0], parts.slice(1).join('/')];
+    return [rawSite, null];
+  }, [rawSite]);
   const [data,setData] = useState(null);
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState(null);
@@ -83,6 +92,11 @@ const PublicSite = () => {
 
   const pages = data.pages || [];
 
+  // Decide whether to render normal pages or nested page (login/dashboard)
+  const nestedPath = (window.location.pathname || '').toLowerCase();
+  const child = (childRoute || '').toLowerCase();
+  const isNestedPage = child === 'student-login' || child === 'student-dashboard' || nestedPath.endsWith('/student-login') || nestedPath.endsWith('/student-dashboard');
+
   return (
     <div style={themeVars} className="min-h-screen bg-base-200 text-base-content" >
       <header className="sticky top-0 z-30 backdrop-blur supports-[backdrop-filter]:bg-base-100/80 bg-base-100/95 border-b border-base-300">
@@ -124,7 +138,20 @@ const PublicSite = () => {
         )}
       </header>
       <main className="px-4 md:px-10 max-w-7xl mx-auto py-12">
-        {pages.map(p => <PageRenderer key={p.key} page={p} site={data} />)}
+        {isNestedPage ? (
+          child === 'student-login' ? (
+            <div className="max-w-3xl mx-auto w-full">
+              <div className="font-bold text-3xl mb-6">Student Login</div>
+              <StudentLogin site={data} />
+            </div>
+          ) : child === 'student-dashboard' ? (
+            <StudentDashboardPage />
+          ) : (
+            <Outlet context={{ site: data }} />
+          )
+        ) : (
+          pages.map(p => <PageRenderer key={p.key} page={p} site={data} />)
+        )}
       </main>
       <footer className="px-6 py-10 border-t text-xs text-center opacity-70 mt-12">© {new Date().getFullYear()} {data.name}. All rights reserved.</footer>
     </div>

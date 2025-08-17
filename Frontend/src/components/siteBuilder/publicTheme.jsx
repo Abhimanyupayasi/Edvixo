@@ -1,10 +1,22 @@
 import React from 'react';
+import StudentLogin from './StudentLogin.jsx';
 // Centralized public site architecture: palettes + structured sections
 export const PageRegistry = {
   home: ({ sections, site }) => <HeroSection section={sections[0]} site={site} />,
   about: ({ sections }) => <AboutSection section={sections[0]} />,
   courses: ({ sections }) => <CoursesSection section={sections[0]} />,
-  'student-login': ({ sections }) => <LoginInfoSection section={sections[0]} context="student" />,
+  'student-login': ({ sections, site }) => (
+    <SectionCard className="mb-16" id="student-login">
+      <div className="space-y-4">
+        <div className="font-bold text-2xl">Student Login</div>
+        <div className="flex flex-wrap gap-3">
+          <a className="btn btn-primary btn-sm" href={`?site=${site?.subdomain || ''}/student-login`}>Open Full Page</a>
+          <a className="btn btn-outline btn-sm" href={`?site=${site?.subdomain || ''}/student-dashboard`}>Go to Dashboard</a>
+        </div>
+        <StudentLogin site={site} />
+      </div>
+    </SectionCard>
+  ),
   'staff-login': ({ sections }) => <LoginInfoSection section={sections[0]} context="staff" />,
   contact: ({ sections }) => <ContactSection section={sections[0]} />
 };
