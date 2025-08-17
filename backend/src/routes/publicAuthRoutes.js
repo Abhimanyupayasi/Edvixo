@@ -28,14 +28,16 @@ function parseDOBToISO(val){
 
 function setAuthCookies(req, res, access, refresh){
   const isProd = process.env.NODE_ENV === 'production';
+  const cookieDomain = (process.env.COOKIE_DOMAIN || '').trim() || undefined; // e.g., .sevalla.app
   const origin = req.get('origin') || '';
   const isLocal = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin);
   // In production we must use SameSite=None; Secure for cross-site cookies.
   // In dev (localhost over http), use Lax and non-secure; different ports are same-site.
   const sameSite = isProd ? 'none' : 'lax';
   const secure = isProd; // only secure over https in production
-  res.cookie('student_access', access, { httpOnly: false, secure, sameSite, path: '/', maxAge: 15*60*1000 });
-  res.cookie('student_refresh', refresh, { httpOnly: true,  secure, sameSite, path: '/', maxAge: 7*24*60*60*1000 });
+  const base = { secure, sameSite, path: '/', ...(cookieDomain ? { domain: cookieDomain } : {}) };
+  res.cookie('student_access', access, { ...base, httpOnly: false, maxAge: 15*60*1000 });
+  res.cookie('student_refresh', refresh, { ...base, httpOnly: true,  maxAge: 7*24*60*60*1000 });
 }
 
 router.post('/login', async (req,res)=>{
@@ -70,9 +72,11 @@ router.post('/refresh', async (req,res)=>{
   const access = signAccessToken({ sid: payload.sid, iid: payload.iid });
   // Mirror cookie attributes used on login
   const isProd = process.env.NODE_ENV === 'production';
+  const cookieDomain = (process.env.COOKIE_DOMAIN || '').trim() || undefined;
   const sameSite = isProd ? 'none' : 'lax';
   const secure = isProd;
-  res.cookie('student_access', access, { httpOnly: false, secure, sameSite, path: '/', maxAge: 15*60*1000 });
+  const base = { secure, sameSite, path: '/', ...(cookieDomain ? { domain: cookieDomain } : {}) };
+  res.cookie('student_access', access, { ...base, httpOnly: false, maxAge: 15*60*1000 });
     res.json({ success:true, access });
   } catch (e){ res.status(500).json({ success:false, message:e.message }); }
 });
@@ -80,10 +84,12 @@ router.post('/refresh', async (req,res)=>{
 router.post('/logout', async (req,res)=>{
   try {
   const isProd = process.env.NODE_ENV === 'production';
+  const cookieDomain = (process.env.COOKIE_DOMAIN || '').trim() || undefined;
   const sameSite = isProd ? 'none' : 'lax';
   const secure = isProd;
-  res.clearCookie('student_access', { secure, sameSite, path: '/' });
-  res.clearCookie('student_refresh', { secure, sameSite, httpOnly: true, path: '/' });
+  const base = { secure, sameSite, path: '/', ...(cookieDomain ? { domain: cookieDomain } : {}) };
+  res.clearCookie('student_access', base);
+  res.clearCookie('student_refresh', { ...base, httpOnly: true });
     res.json({ success:true });
   } catch (e){ res.status(500).json({ success:false, message:e.message }); }
 });

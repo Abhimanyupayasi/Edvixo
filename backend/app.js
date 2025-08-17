@@ -9,6 +9,8 @@ import paymentRouter from './src/routes/paymentRoutes.js';
 
 const app = express();
 
+// Trust reverse proxy headers (X-Forwarded-Proto/Host) so HTTPS/cookies work behind proxies
+app.set('trust proxy', 1);
 
 
 // CORS allowlist (supports multiple, comma-separated)
@@ -20,13 +22,17 @@ const allowlist = new Set(
 );
 
 // Middleware
+const platformRoot = (process.env.PLATFORM_ROOT_DOMAIN || 'sevalla.app').toLowerCase();
 const corsOptions = {
   origin: (origin, cb) => {
     // Don’t throw on bad origins in dev; allow localhost and configured origins
     if (!origin) return cb(null, true);
     let host = '';
     try { host = new URL(origin).host; } catch { host = ''; }
-    const ok = allowlist.has(origin) || /^https?:\/\/(localhost|127\.0\.0\.1)(:\\d+)?$/i.test(origin) || /\.vercel\.app$/i.test(host);
+  const isLocal = /^https?:\/\/(localhost|127\.0\.0\.1)(:\\d+)?$/i.test(origin);
+  const isVercel = /\.vercel\.app$/i.test(host);
+  const isPlatform = host === platformRoot || host.endsWith('.' + platformRoot);
+  const ok = allowlist.has(origin) || isLocal || isVercel || isPlatform;
     return cb(null, ok);
   },
   methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
@@ -39,12 +45,19 @@ app.use(cors(corsOptions));
 app.use((req, res, next) => {
   if (req.method !== 'OPTIONS') return next();
   const origin = req.headers.origin;
-  if (origin && (allowlist.has(origin) || /^https?:\/\/(localhost|127\.0\.0\.1)(:\\d+)?$/i.test(origin))) {
+  if (origin) {
+    let host = '';
+    try { host = new URL(origin).host; } catch { host = ''; }
+    const isLocal = /^https?:\/\/(localhost|127\.0\.0\.1)(:\\d+)?$/i.test(origin);
+    const isVercel = /\.vercel\.app$/i.test(host);
+    const isPlatform = host === platformRoot || host.endsWith('.' + platformRoot);
+    if (allowlist.has(origin) || isLocal || isVercel || isPlatform) {
     res.header('Access-Control-Allow-Origin', origin);
     res.header('Vary', 'Origin');
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
     res.header('Access-Control-Allow-Headers', 'authorization,content-type,x-requested-with,x-plan-id,x-student-access');
+    }
   }
   return res.sendStatus(204);
 });
