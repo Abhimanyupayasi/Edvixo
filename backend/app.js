@@ -41,6 +41,11 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
+// Expose headers (not required for cookies, but useful for debugging)
+app.use((req, res, next) => {
+  res.header('Access-Control-Expose-Headers', 'Set-Cookie,Content-Type');
+  next();
+});
 // Ensure OPTIONS preflight returns quickly after CORS headers are applied
 app.use((req, res, next) => {
   if (req.method !== 'OPTIONS') return next();

@@ -28,7 +28,15 @@ function parseDOBToISO(val){
 
 function setAuthCookies(req, res, access, refresh){
   const isProd = process.env.NODE_ENV === 'production';
-  const cookieDomain = (process.env.COOKIE_DOMAIN || '').trim() || undefined; // e.g., .sevalla.app
+  // Prefer explicit domain; else derive from host when it matches PLATFORM_ROOT_DOMAIN
+  let cookieDomain = (process.env.COOKIE_DOMAIN || '').trim() || undefined; // e.g., .sevalla.app
+  if (!cookieDomain && isProd) {
+    const platformRoot = (process.env.PLATFORM_ROOT_DOMAIN || '').toLowerCase();
+    const host = (req.hostname || req.get('host') || '').toLowerCase();
+    if (platformRoot && (host === platformRoot || host.endsWith('.' + platformRoot))) {
+      cookieDomain = '.' + platformRoot;
+    }
+  }
   const origin = req.get('origin') || '';
   const isLocal = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin);
   // In production we must use SameSite=None; Secure for cross-site cookies.
@@ -72,7 +80,14 @@ router.post('/refresh', async (req,res)=>{
   const access = signAccessToken({ sid: payload.sid, iid: payload.iid });
   // Mirror cookie attributes used on login
   const isProd = process.env.NODE_ENV === 'production';
-  const cookieDomain = (process.env.COOKIE_DOMAIN || '').trim() || undefined;
+  let cookieDomain = (process.env.COOKIE_DOMAIN || '').trim() || undefined;
+  if (!cookieDomain && isProd) {
+    const platformRoot = (process.env.PLATFORM_ROOT_DOMAIN || '').toLowerCase();
+    const host = (req.hostname || req.get('host') || '').toLowerCase();
+    if (platformRoot && (host === platformRoot || host.endsWith('.' + platformRoot))) {
+      cookieDomain = '.' + platformRoot;
+    }
+  }
   const sameSite = isProd ? 'none' : 'lax';
   const secure = isProd;
   const base = { secure, sameSite, path: '/', ...(cookieDomain ? { domain: cookieDomain } : {}) };
@@ -84,7 +99,14 @@ router.post('/refresh', async (req,res)=>{
 router.post('/logout', async (req,res)=>{
   try {
   const isProd = process.env.NODE_ENV === 'production';
-  const cookieDomain = (process.env.COOKIE_DOMAIN || '').trim() || undefined;
+  let cookieDomain = (process.env.COOKIE_DOMAIN || '').trim() || undefined;
+  if (!cookieDomain && isProd) {
+    const platformRoot = (process.env.PLATFORM_ROOT_DOMAIN || '').toLowerCase();
+    const host = (req.hostname || req.get('host') || '').toLowerCase();
+    if (platformRoot && (host === platformRoot || host.endsWith('.' + platformRoot))) {
+      cookieDomain = '.' + platformRoot;
+    }
+  }
   const sameSite = isProd ? 'none' : 'lax';
   const secure = isProd;
   const base = { secure, sameSite, path: '/', ...(cookieDomain ? { domain: cookieDomain } : {}) };
