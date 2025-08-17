@@ -9,16 +9,6 @@
   ],
   "rewrites": [
     {
-      "source": "/",
-      "has": [ { "type": "host", "value": ":inst.:domain" } ],
-      "destination": "/public-site?site=:inst"
-    },
-    {
-      "source": "/(.*)",
-      "has": [ { "type": "host", "value": ":inst.:domain" } ],
-      "destination": "/public-site?site=:inst/$1"
-    },
-    {
       "source": "/site/:inst",
       "destination": "/public-site?site=:inst"
     },
