@@ -26,17 +26,21 @@ const corsOptions = {
       if (!origin) return cb(null, true); // non-browser or same-origin
       const host = new URL(origin).host;
       const ok = allowlist.has(origin) || /\.vercel\.app$/.test(host);
-      return cb(ok ? null : new Error('CORS blocked'), ok);
+  return cb(ok ? null : new Error(`CORS blocked: ${origin}`), ok);
     } catch {
       return cb(new Error('CORS origin parse failed'));
     }
   },
   methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
-  allowedHeaders: ['Authorization','Content-Type','X-Requested-With'],
   credentials: true
 };
 
 app.use(cors(corsOptions));
+// Ensure OPTIONS preflight returns quickly after CORS headers are applied
+app.use((req, res, next) => {
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});
 
 // Note: Global CORS middleware above will handle preflight OPTIONS automatically.
 app.use(express.json());

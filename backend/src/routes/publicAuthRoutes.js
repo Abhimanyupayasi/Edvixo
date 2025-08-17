@@ -28,8 +28,10 @@ function parseDOBToISO(val){
 
 function setAuthCookies(res, access, refresh){
   const isProd = process.env.NODE_ENV === 'production';
-  res.cookie('student_access', access, { httpOnly: false, secure: isProd, sameSite: 'lax', maxAge: 15*60*1000 });
-  res.cookie('student_refresh', refresh, { httpOnly: true, secure: isProd, sameSite: 'lax', maxAge: 7*24*60*60*1000 });
+  // Cross-site cookies require SameSite=None and Secure when frontend and backend are on different domains
+  const base = { secure: isProd, sameSite: 'none' };
+  res.cookie('student_access', access, { ...base, httpOnly: false, maxAge: 15*60*1000 });
+  res.cookie('student_refresh', refresh, { ...base, httpOnly: true,  maxAge: 7*24*60*60*1000 });
 }
 
 router.post('/login', async (req,res)=>{
@@ -62,15 +64,17 @@ router.post('/refresh', async (req,res)=>{
     const payload = verifyRefresh(token);
     if (!payload) return res.status(401).json({ success:false, message:'Invalid refresh token' });
     const access = signAccessToken({ sid: payload.sid, iid: payload.iid });
-    res.cookie('student_access', access, { httpOnly: false, secure: process.env.NODE_ENV==='production', sameSite:'lax', maxAge: 15*60*1000 });
+  res.cookie('student_access', access, { httpOnly: false, secure: process.env.NODE_ENV==='production', sameSite:'none', maxAge: 15*60*1000 });
     res.json({ success:true, access });
   } catch (e){ res.status(500).json({ success:false, message:e.message }); }
 });
 
 router.post('/logout', async (req,res)=>{
   try {
-    res.clearCookie('student_access');
-    res.clearCookie('student_refresh');
+  const isProd = process.env.NODE_ENV === 'production';
+  const base = { secure: isProd, sameSite: 'none' };
+  res.clearCookie('student_access', base);
+  res.clearCookie('student_refresh', { ...base, httpOnly: true });
     res.json({ success:true });
   } catch (e){ res.status(500).json({ success:false, message:e.message }); }
 });

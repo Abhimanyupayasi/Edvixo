@@ -4,8 +4,9 @@ import { verifyAccess } from '../utils/studentJwt.js';
 export function requireStudentAuth(req, res, next){
   const header = req.headers['authorization'] || '';
   const bearer = header.startsWith('Bearer ') ? header.slice(7) : null;
+  const custom = req.headers['x-student-access'] || null;
   const cookieTok = req.cookies?.student_access || null;
-  const token = bearer || cookieTok;
+  const token = bearer || custom || cookieTok;
   if (!token) return res.status(401).json({ success:false, message:'Unauthorized' });
   const payload = verifyAccess(token);
   if (!payload) return res.status(401).json({ success:false, message:'Invalid token' });
