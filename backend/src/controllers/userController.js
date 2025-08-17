@@ -1,5 +1,5 @@
 // src/controllers/userController.js
-import Plan from "../models/plan.js";
+import Plan from "../models/Plan.js";
 
 /**
  * Get billing information (for admin/principle/owner)
