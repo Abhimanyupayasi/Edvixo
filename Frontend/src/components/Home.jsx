@@ -6,7 +6,7 @@ import { login } from "../store/authSlice";
 
 import Header from "./header/Header";
 import HomePage from "../pages/HomePage";
-import Footer from "./Footer/Footer";
+import Footer from "./footer/Footer";
 
 function Home() {
   const dispatch = useDispatch();
