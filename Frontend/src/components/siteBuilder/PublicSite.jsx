@@ -35,7 +35,8 @@ const PublicSite = () => {
     if(!sub) { setLoading(false); return; }
     try {
       setLoading(true); setError(null);
-      const res = await fetch(`${serverURL || 'http://localhost:8000'}/institutions/public/${sub}`);
+  const base = serverURL || '';
+  const res = await fetch(`${base}/institutions/public/${sub}`);
       if(!res.ok){ throw new Error('Not found'); }
       const json = await res.json();
       setData(json.data);

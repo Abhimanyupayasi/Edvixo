@@ -6,7 +6,7 @@ export default function StudentDashboardPage(){
   const { site } = useOutletContext() || { site: null };
   const [data,setData] = useState(null);
   const [error,setError] = useState('');
-  const base = serverURL || 'http://localhost:8000';
+  const base = serverURL || '';
 
   async function load(){
     setError('');

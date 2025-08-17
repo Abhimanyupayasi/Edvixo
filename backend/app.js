@@ -11,11 +11,34 @@ const app = express();
 
 
 
+// CORS allowlist (supports multiple, comma-separated)
+const allowlist = new Set(
+  (process.env.FRONTEND_URLS || process.env.FRONTEND_URL || 'http://localhost:3000,http://localhost:5173')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean)
+);
+
 // Middleware
-app.use(cors({
-  origin: process.env.FRONTEND_URL,
+const corsOptions = {
+  origin: (origin, cb) => {
+    try {
+      if (!origin) return cb(null, true); // non-browser or same-origin
+      const host = new URL(origin).host;
+      const ok = allowlist.has(origin) || /\.vercel\.app$/.test(host);
+      return cb(ok ? null : new Error('CORS blocked'), ok);
+    } catch {
+      return cb(new Error('CORS origin parse failed'));
+    }
+  },
+  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+  allowedHeaders: ['Authorization','Content-Type','X-Requested-With'],
   credentials: true
-}));
+};
+
+app.use(cors(corsOptions));
+
+// Note: Global CORS middleware above will handle preflight OPTIONS automatically.
 app.use(express.json());
 app.use(cookieParser());
 app.use(clerkMiddleware());

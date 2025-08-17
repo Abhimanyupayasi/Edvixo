@@ -60,9 +60,10 @@ export default function App() {
 
   useEffect(() => {
     if (userId) {
-      const loadData = async () => {
+    const loadData = async () => {
         try {
-          const data = await fetchWithAuth('http://localhost:8000/admin');
+      const base = import.meta.env.VITE_SERVER_URL || window.__API_BASE__ || '';
+      const data = await fetchWithAuth(`${base}/admin`);
           console.log("API data:", data);
         } catch (error) {
           console.error("Failed to load data:", error);

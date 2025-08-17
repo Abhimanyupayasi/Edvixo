@@ -26,7 +26,8 @@ export default function CreateOrderComponent() {
       // Get fresh token
       const token = await getToken();
       
-      const response = await fetch('http://localhost:8000/payments/orders', {
+  const base = import.meta.env.VITE_SERVER_URL || '';
+  const response = await fetch(`${base}/payments/orders`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -8,7 +8,7 @@ export default function StudentLogin({ site }){
   const [error,setError] = useState('');
   const [profile,setProfile] = useState(null);
 
-  const base = serverURL || 'http://localhost:8000';
+  const base = serverURL || '';
 
   async function login(e){
     e.preventDefault();
