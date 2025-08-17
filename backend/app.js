@@ -22,24 +22,31 @@ const allowlist = new Set(
 // Middleware
 const corsOptions = {
   origin: (origin, cb) => {
-    try {
-      if (!origin) return cb(null, true); // non-browser or same-origin
-      const host = new URL(origin).host;
-      const ok = allowlist.has(origin) || /\.vercel\.app$/.test(host);
-  return cb(ok ? null : new Error(`CORS blocked: ${origin}`), ok);
-    } catch {
-      return cb(new Error('CORS origin parse failed'));
-    }
+    // Don’t throw on bad origins in dev; allow localhost and configured origins
+    if (!origin) return cb(null, true);
+    let host = '';
+    try { host = new URL(origin).host; } catch { host = ''; }
+    const ok = allowlist.has(origin) || /^https?:\/\/(localhost|127\.0\.0\.1)(:\\d+)?$/i.test(origin) || /\.vercel\.app$/i.test(host);
+    return cb(null, ok);
   },
   methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+  allowedHeaders: ['authorization','content-type','x-requested-with','x-plan-id','x-student-access'],
   credentials: true
 };
 
 app.use(cors(corsOptions));
 // Ensure OPTIONS preflight returns quickly after CORS headers are applied
 app.use((req, res, next) => {
-  if (req.method === 'OPTIONS') return res.sendStatus(204);
-  next();
+  if (req.method !== 'OPTIONS') return next();
+  const origin = req.headers.origin;
+  if (origin && (allowlist.has(origin) || /^https?:\/\/(localhost|127\.0\.0\.1)(:\\d+)?$/i.test(origin))) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Vary', 'Origin');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'authorization,content-type,x-requested-with,x-plan-id,x-student-access');
+  }
+  return res.sendStatus(204);
 });
 
 // Note: Global CORS middleware above will handle preflight OPTIONS automatically.

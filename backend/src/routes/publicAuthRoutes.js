@@ -26,12 +26,16 @@ function parseDOBToISO(val){
   return null;
 }
 
-function setAuthCookies(res, access, refresh){
+function setAuthCookies(req, res, access, refresh){
   const isProd = process.env.NODE_ENV === 'production';
-  // Cross-site cookies require SameSite=None and Secure when frontend and backend are on different domains
-  const base = { secure: isProd, sameSite: 'none' };
-  res.cookie('student_access', access, { ...base, httpOnly: false, maxAge: 15*60*1000 });
-  res.cookie('student_refresh', refresh, { ...base, httpOnly: true,  maxAge: 7*24*60*60*1000 });
+  const origin = req.get('origin') || '';
+  const isLocal = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin);
+  // In production we must use SameSite=None; Secure for cross-site cookies.
+  // In dev (localhost over http), use Lax and non-secure; different ports are same-site.
+  const sameSite = isProd ? 'none' : 'lax';
+  const secure = isProd; // only secure over https in production
+  res.cookie('student_access', access, { httpOnly: false, secure, sameSite, path: '/', maxAge: 15*60*1000 });
+  res.cookie('student_refresh', refresh, { httpOnly: true,  secure, sameSite, path: '/', maxAge: 7*24*60*60*1000 });
 }
 
 router.post('/login', async (req,res)=>{
@@ -50,9 +54,9 @@ router.post('/login', async (req,res)=>{
     const d1 = new Date(dobISO).toISOString().slice(0,10);
     const d2 = student.dob ? new Date(student.dob).toISOString().slice(0,10) : null;
     if (!d2 || d1 !== d2) return res.status(401).json({ success:false, message:'Invalid credentials' });
-    const access = signAccessToken({ sid: student._id.toString(), iid: student.institutionId.toString() });
-    const refresh = signRefreshToken({ sid: student._id.toString(), iid: student.institutionId.toString() });
-    setAuthCookies(res, access, refresh);
+  const access = signAccessToken({ sid: student._id.toString(), iid: student.institutionId.toString() });
+  const refresh = signRefreshToken({ sid: student._id.toString(), iid: student.institutionId.toString() });
+  setAuthCookies(req, res, access, refresh);
     res.json({ success:true, access });
   } catch (e){ res.status(500).json({ success:false, message:e.message }); }
 });
@@ -63,8 +67,12 @@ router.post('/refresh', async (req,res)=>{
     if (!token) return res.status(401).json({ success:false, message:'No refresh token' });
     const payload = verifyRefresh(token);
     if (!payload) return res.status(401).json({ success:false, message:'Invalid refresh token' });
-    const access = signAccessToken({ sid: payload.sid, iid: payload.iid });
-  res.cookie('student_access', access, { httpOnly: false, secure: process.env.NODE_ENV==='production', sameSite:'none', maxAge: 15*60*1000 });
+  const access = signAccessToken({ sid: payload.sid, iid: payload.iid });
+  // Mirror cookie attributes used on login
+  const isProd = process.env.NODE_ENV === 'production';
+  const sameSite = isProd ? 'none' : 'lax';
+  const secure = isProd;
+  res.cookie('student_access', access, { httpOnly: false, secure, sameSite, path: '/', maxAge: 15*60*1000 });
     res.json({ success:true, access });
   } catch (e){ res.status(500).json({ success:false, message:e.message }); }
 });
@@ -72,9 +80,10 @@ router.post('/refresh', async (req,res)=>{
 router.post('/logout', async (req,res)=>{
   try {
   const isProd = process.env.NODE_ENV === 'production';
-  const base = { secure: isProd, sameSite: 'none' };
-  res.clearCookie('student_access', base);
-  res.clearCookie('student_refresh', { ...base, httpOnly: true });
+  const sameSite = isProd ? 'none' : 'lax';
+  const secure = isProd;
+  res.clearCookie('student_access', { secure, sameSite, path: '/' });
+  res.clearCookie('student_refresh', { secure, sameSite, httpOnly: true, path: '/' });
     res.json({ success:true });
   } catch (e){ res.status(500).json({ success:false, message:e.message }); }
 });
