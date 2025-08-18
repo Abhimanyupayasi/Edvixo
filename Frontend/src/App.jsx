@@ -8,6 +8,7 @@ import {
 } from "@clerk/clerk-react";
 import { useUser } from "@clerk/clerk-react";
 import { Routes, Route, Navigate } from "react-router-dom";
+import RequireAuth from './components/auth/RequireAuth';
 import Home from "./components/Home";
 import AllStudentsPage from './components/students/AllStudentsPage';
 import About from "./components/About";
@@ -79,19 +80,21 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/about" element={<About />} />
-        <Route path="/super" element={<SuperAdmin />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/create" element={<CreatePlanForm />} />
+        <Route element={<RequireAuth />}>
+          <Route path="/super" element={<SuperAdmin />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/create" element={<CreatePlanForm />} />
+          <Route path="/my-plan/:planId" element={<ManagePurchasedPlan />} />
+          <Route path="/my-plan/:planId/students" element={<StudentsPage />} />
+          <Route path="/my-plan/:planId/allstudents" element={<AllStudentsPage />} />
+          <Route path="/my-plan/:planId/build-website" element={<Navigate to="./update-website" replace />} />
+          <Route path="/my-plan/:planId/update-website" element={<InstitutionWizard mode="update" />} />
+          <Route path="/dashboard/website-builder/basic" element={<InstitutionWizard />} />
+        </Route>
         <Route path="/plans" element={<PlansExplorer />} />
         <Route path="/create-plan" element={<CreateOrderComponent />} />
         <Route path="/plan/:id" element={<ViewPlanByID />} />
         <Route path="/payment-success" element={<PaymentSuccess/>}/>
-        <Route path="/my-plan/:planId" element={<ManagePurchasedPlan />} />
-  <Route path="/my-plan/:planId/students" element={<StudentsPage />} />
-  <Route path="/my-plan/:planId/allstudents" element={<AllStudentsPage />} />
-  <Route path="/my-plan/:planId/build-website" element={<Navigate to="./update-website" replace />} />
-  <Route path="/my-plan/:planId/update-website" element={<InstitutionWizard mode="update" />} />
-        <Route path="/dashboard/website-builder/basic" element={<InstitutionWizard />} />
         <Route path="/public-site" element={<PublicSite />}>
           <Route path="student-login" element={<StudentLoginPage />} />
           <Route path="student-dashboard" element={<StudentDashboardPage />} />

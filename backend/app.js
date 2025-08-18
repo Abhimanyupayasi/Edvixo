@@ -9,8 +9,6 @@ import paymentRouter from './src/routes/paymentRoutes.js';
 
 const app = express();
 
-// Trust reverse proxy headers (X-Forwarded-Proto/Host) so HTTPS/cookies work behind proxies
-app.set('trust proxy', 1);
 
 
 // CORS allowlist (supports multiple, comma-separated)
@@ -22,50 +20,23 @@ const allowlist = new Set(
 );
 
 // Middleware
-const platformRoot = (process.env.PLATFORM_ROOT_DOMAIN || 'sevalla.app').toLowerCase();
 const corsOptions = {
   origin: (origin, cb) => {
-    // Don’t throw on bad origins in dev; allow localhost and configured origins
-    if (!origin) return cb(null, true);
-    let host = '';
-    try { host = new URL(origin).host; } catch { host = ''; }
-  const isLocal = /^https?:\/\/(localhost|127\.0\.0\.1)(:\\d+)?$/i.test(origin);
-  const isVercel = /\.vercel\.app$/i.test(host);
-  const isPlatform = host === platformRoot || host.endsWith('.' + platformRoot);
-  const ok = allowlist.has(origin) || isLocal || isVercel || isPlatform;
-    return cb(null, ok);
+    try {
+      if (!origin) return cb(null, true); // non-browser or same-origin
+      const host = new URL(origin).host;
+      const ok = allowlist.has(origin) || /\.vercel\.app$/.test(host);
+      return cb(ok ? null : new Error('CORS blocked'), ok);
+    } catch {
+      return cb(new Error('CORS origin parse failed'));
+    }
   },
   methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
-  allowedHeaders: ['authorization','content-type','x-requested-with','x-plan-id','x-student-access'],
+  allowedHeaders: ['Authorization','Content-Type','X-Requested-With'],
   credentials: true
 };
 
 app.use(cors(corsOptions));
-// Expose headers (not required for cookies, but useful for debugging)
-app.use((req, res, next) => {
-  res.header('Access-Control-Expose-Headers', 'Set-Cookie,Content-Type');
-  next();
-});
-// Ensure OPTIONS preflight returns quickly after CORS headers are applied
-app.use((req, res, next) => {
-  if (req.method !== 'OPTIONS') return next();
-  const origin = req.headers.origin;
-  if (origin) {
-    let host = '';
-    try { host = new URL(origin).host; } catch { host = ''; }
-    const isLocal = /^https?:\/\/(localhost|127\.0\.0\.1)(:\\d+)?$/i.test(origin);
-    const isVercel = /\.vercel\.app$/i.test(host);
-    const isPlatform = host === platformRoot || host.endsWith('.' + platformRoot);
-    if (allowlist.has(origin) || isLocal || isVercel || isPlatform) {
-    res.header('Access-Control-Allow-Origin', origin);
-    res.header('Vary', 'Origin');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'authorization,content-type,x-requested-with,x-plan-id,x-student-access');
-    }
-  }
-  return res.sendStatus(204);
-});
 
 // Note: Global CORS middleware above will handle preflight OPTIONS automatically.
 app.use(express.json());

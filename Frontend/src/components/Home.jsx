@@ -32,11 +32,9 @@ function Home() {
 
   return (
     <div>
-      <header>
-        <Header />
-        <HomePage />
-        <Footer />
-      </header>
+      <Header />
+      <HomePage />
+      <Footer />
     </div>
   );
 }

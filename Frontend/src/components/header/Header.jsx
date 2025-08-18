@@ -40,40 +40,40 @@ export default function Header() {
 
   const products = [
     {
-      name: "Analytics",
-      description: "Get a better understanding of your traffic",
-      href: "#",
+      name: "Pricing & Plans",
+      description: "Compare plans and choose what fits your institution",
+      href: "/plans",
       icon: ChartPieIcon,
     },
     {
-      name: "Engagement",
-      description: "Speak directly to your customers",
-      href: "#",
+      name: "Website Builder",
+      description: "Launch a beautiful public site in minutes",
+      href: "/my-plan/:planId/update-website",
+      icon: SquaresPlusIcon,
+    },
+    {
+      name: "Student Portal",
+      description: "Students can log in to view their details",
+      href: "/public-site/student-login",
       icon: CursorArrowRaysIcon,
     },
     {
       name: "Security",
-      description: "Your customers’ data will be safe and secure",
-      href: "#",
+      description: "Enterprise-grade auth and data protection",
+      href: "#security",
       icon: FingerPrintIcon,
     },
     {
-      name: "Integrations",
-      description: "Connect with third-party tools",
-      href: "#",
-      icon: SquaresPlusIcon,
-    },
-    {
-      name: "Automations",
-      description: "Build strategic funnels that will convert",
-      href: "#",
+      name: "Automation",
+      description: "Automate routine tasks and save staff hours",
+      href: "#automation",
       icon: ArrowPathIcon,
     },
   ];
 
   const callsToAction = [
-    { name: "Watch demo", href: "#", icon: PlayCircleIcon },
-    { name: "Contact sales", href: "#", icon: PhoneIcon },
+    { name: "Watch demo", href: "#demo", icon: PlayCircleIcon },
+    { name: "Contact sales", href: "#contact", icon: PhoneIcon },
   ];
 
   
@@ -186,24 +186,10 @@ export default function Header() {
             </PopoverPanel>
           </Popover>
 
-          <a
-            href="#"
-            className="text-sm font-semibold text-gray-100 hover:text-white"
-          >
-            Features
-          </a>
-          <a
-            href="#"
-            className="text-sm font-semibold text-gray-100 hover:text-white"
-          >
-            Marketplace
-          </a>
-          <a
-            href="#"
-            className="text-sm font-semibold text-gray-100 hover:text-white"
-          >
-            Company
-          </a>
+          <a href="/plans" className="text-sm font-semibold text-gray-100 hover:text-white">Pricing</a>
+          <a href="/dashboard" className="text-sm font-semibold text-gray-100 hover:text-white">Dashboard</a>
+          <a href="/public-site/student-login" className="text-sm font-semibold text-gray-100 hover:text-white">Student Portal</a>
+          <a href="#docs" className="text-sm font-semibold text-gray-100 hover:text-white">Docs</a>
         </PopoverGroup>
 
         <div className="hidden lg:flex lg:flex-1 lg:justify-end">
