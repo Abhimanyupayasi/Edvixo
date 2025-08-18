@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="220" height="44" viewBox="0 0 220 44" role="img" aria-labelledby="title">
+  <title>Edvixo</title>
+  <defs>
+    <linearGradient id="edvixo_grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#6366F1"/>
+      <stop offset="100%" stop-color="#D946EF"/>
+    </linearGradient>
+    <linearGradient id="edvixo_ring" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#22D3EE"/>
+      <stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Logo mark -->
+  <g transform="translate(0,0)">
+    <circle cx="22" cy="22" r="20" fill="#0B1220" />
+    <circle cx="22" cy="22" r="19" fill="none" stroke="url(#edvixo_ring)" stroke-width="2" opacity="0.9"/>
+    <rect x="10" y="11" width="24" height="5" rx="2.5" fill="url(#edvixo_grad)"/>
+    <rect x="10" y="19" width="18" height="5" rx="2.5" fill="url(#edvixo_grad)"/>
+    <rect x="10" y="27" width="24" height="5" rx="2.5" fill="url(#edvixo_grad)"/>
+    <path d="M30 16 L36 22" stroke="url(#edvixo_ring)" stroke-width="3" stroke-linecap="round" opacity="0.9"/>
+  </g>
+
+  <!-- Wordmark (single flow to avoid gaps) -->
+  <g transform="translate(52,6)">
+    <text x="0" y="26" font-family="'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial" font-size="24" font-weight="700" fill="#FFFFFF" letter-spacing="0">
+      Edv<tspan fill="url(#edvixo_grad)">ixo</tspan>
+    </text>
+  </g>
+</svg>

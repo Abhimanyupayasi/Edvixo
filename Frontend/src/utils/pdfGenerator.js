@@ -20,7 +20,7 @@ export const generateInvoicePdf = (paymentDetails) => {
   doc.text(user?.email || 'N/A', 14, 72);
   
   doc.text('From:', 150, 60);
-  doc.text('Your Company Name', 150, 66);
+  doc.text('Edvixo', 150, 66);
   doc.text('your.email@example.com', 150, 72);
 
   // Add table with invoice details
