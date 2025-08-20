@@ -4,13 +4,14 @@ import { Outlet, useLocation } from 'react-router-dom';
 
 export default function RequireAuth() {
   const location = useLocation();
+  const returnTo = `${location.pathname}${location.search}${location.hash}`;
   return (
     <>
       <SignedIn>
         <Outlet />
       </SignedIn>
       <SignedOut>
-        <RedirectToSignIn redirectUrl={location.pathname} />
+        <RedirectToSignIn redirectUrl={returnTo} signInUrl="/sign-in" />
       </SignedOut>
     </>
   );

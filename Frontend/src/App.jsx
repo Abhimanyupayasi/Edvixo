@@ -28,6 +28,7 @@ import InstitutionWizard from './components/siteBuilder/InstitutionWizard';
 import PublicSite from './components/siteBuilder/PublicSite';
 import StudentLoginPage from './pages/StudentLoginPage.jsx';
 import StudentDashboardPage from './pages/StudentDashboardPage.jsx';
+import { SignIn, SignUp } from '@clerk/clerk-react';
 
 
 export default function App() {
@@ -80,6 +81,9 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/about" element={<About />} />
+  {/* Auth pages (Clerk) */}
+  <Route path="/sign-in" element={<div className="min-h-[70vh] grid place-items-center p-6"><SignIn routing="path" path="/sign-in" signUpUrl="/sign-up" /></div>} />
+  <Route path="/sign-up" element={<div className="min-h-[70vh] grid place-items-center p-6"><SignUp routing="path" path="/sign-up" signInUrl="/sign-in" /></div>} />
         <Route element={<RequireAuth />}>
           <Route path="/super" element={<SuperAdmin />} />
           <Route path="/dashboard" element={<Dashboard />} />
