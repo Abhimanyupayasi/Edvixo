@@ -21,20 +21,11 @@ export function maybeRedirectToSubsite() {
     if (/localhost|127\.0\.0\.1/.test(host)) return;
 
     const site = getSubdomain(host, rootDomain);
-    if (!site) return;
-
-    const url = new URL(window.location.href);
-    const alreadyOnPublic = url.pathname.startsWith('/public-site') && url.searchParams.get('site') === site;
-    if (alreadyOnPublic) return;
-
-    const nextPath = url.pathname + (url.search || '') + (url.hash || '');
-    url.pathname = '/public-site';
-    url.search = '';
-    url.searchParams.set('site', site);
-    if (nextPath && nextPath !== '/' && nextPath !== '/public-site') {
-      url.searchParams.set('next', nextPath);
-    }
-    window.history.replaceState({}, '', url.toString());
+  if (!site) return;
+  // Clean URL mode: when on a subdomain, don't change the path.
+  // Routing will render PublicSite at "/" and nested paths.
+  // We still expose the site for consumers that want it.
+  window.__EDVIXO_SITE = site;
   } catch {
     // no-op
   }

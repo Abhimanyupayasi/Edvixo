@@ -19,7 +19,9 @@ const PageRenderer = ({ page, site }) => {
 
 const PublicSite = () => {
   const q = useQuery();
-  const rawSite = q.site || '';
+  // Prefer explicit ?site, otherwise derive from subdomain (set by subdomain util)
+  const derived = (typeof window !== 'undefined' && window.__EDVIXO_SITE) || '';
+  const rawSite = q.site || derived || '';
   // Allow query-style child route: ?site=subdomain/student-login
   const [sub, childRoute] = useMemo(() => {
     if (!rawSite) return [null, null];

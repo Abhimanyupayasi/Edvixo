@@ -26,6 +26,17 @@ import ManagePurchasedPlan from './components/plans/ManagePurchasedPlan';
 import StudentsPage from './components/students/StudentsPage';
 import InstitutionWizard from './components/siteBuilder/InstitutionWizard';
 import PublicSite from './components/siteBuilder/PublicSite';
+const isSubdomain = typeof window !== 'undefined' && (() => {
+  try {
+    const root = import.meta.env.VITE_ROOT_DOMAIN || 'abhimanyu.tech';
+    const h = window.location.host;
+    if (/localhost|127\.0\.0\.1/.test(h)) return false;
+    const parts = h.toLowerCase().split('.');
+    const rootParts = root.toLowerCase().split('.');
+    if (parts.length <= rootParts.length) return false;
+    return h.toLowerCase().endsWith(root.toLowerCase()) && parts[0] !== 'www';
+  } catch { return false; }
+})();
 import StudentLoginPage from './pages/StudentLoginPage.jsx';
 import StudentDashboardPage from './pages/StudentDashboardPage.jsx';
 import { SignIn, SignUp } from '@clerk/clerk-react';
@@ -79,7 +90,16 @@ export default function App() {
   return (
     <>
       <Routes>
-        <Route path="/" element={<Home />} />
+        {/* Public site routing: clean URLs on subdomains */}
+        {isSubdomain ? (
+          <>
+            <Route path="/" element={<PublicSite />} />
+            <Route path="/student-login" element={<PublicSite />} />
+            <Route path="/student-dashboard" element={<PublicSite />} />
+          </>
+        ) : (
+          <Route path="/" element={<Home />} />
+        )}
         <Route path="/about" element={<About />} />
   {/* Auth pages (Clerk) */}
   <Route path="/sign-in" element={<div className="min-h-[70vh] grid place-items-center p-6"><SignIn routing="path" path="/sign-in" signUpUrl="/sign-up" /></div>} />
@@ -99,7 +119,8 @@ export default function App() {
         <Route path="/create-plan" element={<CreateOrderComponent />} />
         <Route path="/plan/:id" element={<ViewPlanByID />} />
         <Route path="/payment-success" element={<PaymentSuccess/>}/>
-        <Route path="/public-site" element={<PublicSite />}>
+  {/* Legacy path-based public site for /site/:inst rewrites */}
+  <Route path="/public-site" element={<PublicSite />}>
           <Route path="student-login" element={<StudentLoginPage />} />
           <Route path="student-dashboard" element={<StudentDashboardPage />} />
         </Route>
