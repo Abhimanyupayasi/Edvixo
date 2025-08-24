@@ -32,7 +32,14 @@ const corsOptions = {
     }
   },
   methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
-  allowedHeaders: ['Authorization','Content-Type','X-Requested-With'],
+  // Allow custom app headers used by the frontend (case-insensitive)
+  allowedHeaders: [
+    'Authorization',
+    'Content-Type',
+    'X-Requested-With',
+    'x-plan-id',
+    'x-student-access'
+  ],
   credentials: true
 };
 
