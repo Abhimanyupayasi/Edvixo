@@ -8,6 +8,8 @@
     }
   ],
   "rewrites": [
-  { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/site/:inst", "destination": "/public-site?site=:inst" },
+    { "source": "/site/:inst/(.*)", "destination": "/public-site?site=:inst/$1" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
