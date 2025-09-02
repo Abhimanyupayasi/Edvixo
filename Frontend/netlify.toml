@@ -3,8 +3,8 @@
   command = "npm run build"
   publish = "frontend/dist"
 
-# Redirect all routes to index.html (for React SPA)
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+
